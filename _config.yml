@@ -12,13 +12,13 @@ gems: [jekyll-paginate]
 paginate: 5
 
 navigation:
- - title: Home
+ - title: HOME
    url: /index.html
- - title: Articles
+ - title: ARTICLES
    url: /articles
- - title: Categories
+ - title: CATEGORIES
    url: /categories
- - title: About
+ - title: ABOUT
    url: /about
 
 social:
