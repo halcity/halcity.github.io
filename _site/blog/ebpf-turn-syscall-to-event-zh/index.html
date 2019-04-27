@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8" <![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9" <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+       })(window,document,'script','dataLayer','GTM-WP54B9K');</script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>[译] eBPF内核探测：如何将任意系统调用转换成事件</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+    <!-- Come and get me RSS readers -->
+    <link rel="alternate" type="application/rss+xml" title="ArthurChiao's Blog" href="http://0.0.0.0:4000/feed.xml" />
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <!--[if IE 8]><link rel="stylesheet" href="/assets/css/ie.css"><![endif]-->
+    <link rel="canonical" href="http://0.0.0.0:4000/blog/ebpf-turn-syscall-to-event-zh/">
+
+    <!-- Modernizr -->
+    <script src="/assets/js/modernizr.custom.15390.js" type="text/javascript"></script>
+
+    
+</head>
+
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WP54B9K"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+    <div class="header">
+     <div class="container">
+         <h1 class="logo"><a href="/">ArthurChiao's Blog</a></h1>
+         <nav class="nav-collapse">
+             <ul class="noList">
+                 
+                   
+                   
+                   <li class="element first  ">
+                     <a href="/index.html">Home</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles">Articles</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles-zh">Articles (中文)</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/categories">Categories</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   last">
+                     <a href="/about">About</a>
+                   </li> 
+                 
+                 <!-- <li> <a href="https://github.com/arthurchiao/reading" target="_blank">Reading</a></li> -->
+                 <!-- <li> <a href="https://github.com/arthurchiao/" target="_blank">GitHub</a></li> -->
+             </ul>
+         </nav>
+     </div>
+ </div><!-- end .header -->
+
+
+   <div class="content">
+      <div class="container">
+         <div class="post">
+  
+  <h1 class="postTitle">[译] eBPF内核探测：如何将任意系统调用转换成事件</h1>
+  <p class="meta">2018-12-03 | <span class="time">14</span> Minute Read</p>
+
+  
+  
+  <p>译者按：本文翻译自2016年的一篇英文博客 <a href="https://blog.yadutaf.fr/2016/03/30/turn-any-syscall-into-event-introducing-ebpf-kernel-probes/">How to turn any syscall into an event: Introducing eBPF Kernel probes</a>。<strong>如果能看懂英文，我建议你阅读原文，或者和本文对照看。</strong></p>
+
+<hr />
+
+<p><strong>写给不想读长文的人(TL; DR)</strong>：Linux <code class="highlighter-rouge">4.4+</code>支持<code class="highlighter-rouge">eBPF</code>，使用它可以将任何的<strong>内核
+函数调用</strong>转换成<strong>可带任何数据</strong>的<strong>用户空间事件</strong>，而<code class="highlighter-rouge">bcc</code>使这个过程更加方便。
+内核探测代码用C写，数据处理代码用Python。</p>
+
+<p>如果你对eBPF或Linux tracing不是太熟悉，建议你阅读全文。本文循序渐进，并介绍了我在
+上手bcc/eBPF时遇到的一些坑，这会节省你大量的时间。</p>
+
+<h2 id="1-消息系统push还是pull">1 消息系统：Push还是Pull</h2>
+
+<p>刚接触容器时，我曾思考如何根据系统的真实状态动态地更新负载均衡器的配置。一
+个通常可用的方案是，每当容器编排服务（orchestrator）启动一个容器，就由它去负责轮
+询这个容器，然后根据健康检查的结果触发一次负载均衡器的配置更新。这看上去是个简单
+的”SYN”测试（探测新启动的服务是否正常）。</p>
+
+<p>这种方式可以工作，但也有缺点：负载均衡器需要（分心）等待其他系统的结果，而它实际
+上只应该负责负载均衡。</p>
+
+<p>我们能做的更好吗？</p>
+
+<p>当你希望一个程序能对系统变化做出反应时，通常有2种可能的方式。一种是程序主动去轮
+询，检查系统变化；另一种，如果系统支持事件通知的话，让它主动通知程序。<strong>使用push还
+是pull取决于具体的问题</strong>。通常的经验是，如果事件频率相对于事件处理时间来说比较低，
+那push模型比较合适；如果事件频率很高，就采用pull模型，否则系统变得不稳定。例如，
+通常的网络驱动会等待网卡事件，而dpdk这样的框架会主动poll网卡，以取得最高的吞吐性
+能和最低的延迟。</p>
+
+<p>在一个理想的世界中，我们有如下事件机制：</p>
+
+<ul>
+  <li><strong>操作系统</strong>：”嗨，容器管理服务，我刚给一个容器创建了一个socket，你需要更新你的状态吗？”</li>
+  <li><strong>容器管理服务</strong>：”喔谢谢你的通知，我需要更新。”</li>
+</ul>
+
+<p>虽然Linux有大量的函数接口用于事件处理，其中包括3个用于文件事件的，但没有专门的用
+于socket事件的。你可以获取路由表事件、邻居表（2层转发表，译者注）事件，conntrack
+事件，接口（网络设备，译者注）变动事件，但就是没有socket事件。或者非要说有，也可
+以说有，但是深深地隐藏在一个Netlink接口中。</p>
+
+<p>理想情况下，我们需要一个<strong>通用的方式</strong>处理事件。怎么做呢？</p>
+
+<h2 id="2-内核跟踪和ebpf简史">2 内核跟踪和eBPF简史</h2>
+
+<p>直到最近，唯一的通用方式是<strong>给内核打补丁，或者使用
+<a href="https://en.wikipedia.org/wiki/SystemTap">SystemTap</a></strong>。SystemTap是一个tracing系
+统，简单来说，它提供了一种领域特定语言（DSL），代码编译成内核模块，然后热加载到
+运行中的内核。但出于安全考虑，一些生产系统禁止动态模块加载，例如我研究eBPF时所用
+的系统。另一种方式是给内核打补丁来触发事件，可能会基于Netlink。这种方式不太方便
+，内核hacking有副作用，例如新引入的特性也许有毒，而且会增加维护成本。</p>
+
+<p>从Linux 3.15开始，将任何可跟踪的内核函数<strong>安全地</strong>转换成事件，很可能将成为现实。
+在计算机科学的表述中，<strong>“安全地”</strong>经常是指通过“一类虚拟机”执行代码，这里也不例外
+。事实上，Linux内部的这个“虚拟机”已经存在了几年了，从1997年的2.1.75版本就开始了
+。它称作伯克利包过滤器（Berkeley Packet Filter），缩写BPF。从名字就可以看出，它
+最开始是为BSD防火墙开发的。它只有两个寄存器，只允许前向跳转，这意味着你不能用它
+实现循环（如果非要说行也可以：如果你知道最大的循环次数，那可以手动做循环展开）。
+这样设计是为了保证程序会结束，不会让操作系统卡住。你可能在考虑，我已经有iptables
+做防火墙了，要这个有什么用？（作为一个例子，）它是CloudFlare的防DDOS攻击工具
+<a href="https://blog.cloudflare.com/bpf-the-forgotten-bytecode/">AntiDDos</a>的基础。</p>
+
+<p>从Linux 3.15开始，BPF被扩展成了eBPF，extended BPF的缩写。它从2个32bit寄存器扩展
+到了10个64bit寄存器，并增加了后向跳转。Linux 3.18中又对它进行了进一步扩展，从网
+络子系统中移出来，并添加了maps等工具。为了保证安全性，它引入了一个检测器，用于验
+证内存访问的合法性和可能的代码路径。如果检测器不能推断出程序会在有限的步骤内结束
+，它会拒绝程序的注入（内核）。</p>
+
+<p>更多关于eBPF的历史，可以参考Oracle的一篇精彩<a href="http://events.linuxfoundation.org/sites/events/files/slides/tracing-linux-ezannoni-linuxcon-ja-2015_0.pdf">分享
+</a>
+。</p>
+
+<p>下面让我们正式开始。</p>
+
+<h2 id="3-你好世界">3 你好，世界</h2>
+
+<p>即使对大神级程序员来说，写汇编代码也并不太方便，因此我们这里使用<code class="highlighter-rouge">bcc</code>。<code class="highlighter-rouge">bcc</code>是基于
+LLVM的工具集，用Python封装了底层机器相关的细节。探测代码用C写，数据用Python分
+析，可以比较容易地开发一些实用工具。</p>
+
+<p>我们从安装bcc开始。本文的一些例子需要4.4以上内核。如果你要尝试运行这些例子，我强
+烈建议你启动一个<strong>虚拟机</strong>。注意是虚拟机，而<strong>不是docker容器</strong>。容器使用的是宿主
+机内核，因此你不能单独更改容器内核。安装参考
+<a href="https://github.com/iovisor/bcc/blob/master/INSTALL.md">GitHub</a>。</p>
+
+<p>我们的目标是，每当有程序监听TCP socket，就得到一个事件通知。当在<code class="highlighter-rouge">AF_INET +
+SOCK_STREAM</code>类型socket上调用系统调用<code class="highlighter-rouge">listen()</code>时，底层的负责处理的内核函数就是
+<code class="highlighter-rouge">inet_listen()</code>。我们从用<code class="highlighter-rouge">kprobe</code>在它的入口做hook，打印一个”Hello, World”开始。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">bcc</span> <span class="kn">import</span> <span class="n">BPF</span>
+
+<span class="c1"># Hello BPF Program
+</span><span class="n">bpf_text</span> <span class="o">=</span> <span class="s">"""
+#include &lt;net/inet_sock.h&gt;
+#include &lt;bcc/proto.h&gt;
+
+// 1. Attach kprobe to "inet_listen"
+int kprobe__inet_listen(struct pt_regs *ctx, struct socket *sock, int backlog)
+{
+    bpf_trace_printk("Hello World!</span><span class="se">\\</span><span class="s">n");
+    return 0;
+};
+"""</span>
+
+<span class="c1"># 2. Build and Inject program
+</span><span class="n">b</span> <span class="o">=</span> <span class="n">BPF</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">bpf_text</span><span class="p">)</span>
+
+<span class="c1"># 3. Print debug output
+</span><span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+    <span class="k">print</span> <span class="n">b</span><span class="o">.</span><span class="n">trace_readline</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>这个程序做了3件事情：</p>
+
+<ol>
+  <li>依据特定的命名规则，将探测点attach到<code class="highlighter-rouge">inet_listen</code>函数。举个例子，按照这种规则，如果<code class="highlighter-rouge">my_probe</code>被调用，它
+将会被显式地attach到<code class="highlighter-rouge">b.attach_kprobe("inet_listen", "my_probe")</code>。</li>
+  <li>使用LLM eBPF后端编译，将生成的字节码用<code class="highlighter-rouge">bpf()</code>系统调用注入（inject）内核，并自动根据命名规则attach到probe点。</li>
+  <li>从内核管道读取原始格式的输出</li>
+</ol>
+
+<p><code class="highlighter-rouge">bpf_trace_printk()</code>是内核函数<code class="highlighter-rouge">printk()</code>的简单版，用于debug。它可以将tracing信息
+打印到<code class="highlighter-rouge">/sys/kernel/debug/tracing/trace_pipe</code>下面的一个特殊管道，从名字就可以看出
+这是一个管道。如果有多个程序读，只有一个会读到，因此对生产环境并不适用。</p>
+
+<p>幸运的是，Linux 3.19为消息传递引入了maps，4.4引入了任意perf事件的支持。本文后面
+会展示perf事件的例子。</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># From a first console</span>
+ubuntu@bcc:~/dev/listen-evts<span class="nv">$ </span><span class="nb">sudo</span> /python tcv4listen.py
+nc-4940  <span class="o">[</span>000] d... 22666.991714: : Hello World!
+
+<span class="c"># From a second console</span>
+ubuntu@bcc:~<span class="nv">$ </span>nc <span class="nt">-l</span> 0 4242
+^C
+</code></pre></div></div>
+
+<p>成功！</p>
+
+<h2 id="4-改进">4 改进</h2>
+
+<p>接下来让我们的事件发送一些有用的信息出来。</p>
+
+<h3 id="41-抓取backlog信息">4.1 抓取backlog信息</h3>
+
+<p>“backlog”是TCP socket允许建立的最大连接的数量(，等待被<code class="highlighter-rouge">accept()</code>)。</p>
+
+<p>只需对<code class="highlighter-rouge">bpf_trace_printk</code>稍作调整：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">bpf_trace_printk</span><span class="p">(</span><span class="s">"Listening with with up to </span><span class="si">%</span><span class="s">d pending connections!</span><span class="se">\\</span><span class="s">n"</span><span class="p">,</span> <span class="n">backlog</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>重新运行：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>bcc<span class="o">)</span>ubuntu@bcc:~/dev/listen-evts<span class="nv">$ </span><span class="nb">sudo </span>python tcv4listen.py
+nc-5020  <span class="o">[</span>000] d... 25497.154070: : Listening with with up to 1 pending connections!
+</code></pre></div></div>
+
+<p><code class="highlighter-rouge">nc</code>是个<strong>单连接</strong>的小工具，因此backlog是1。如果Nginx或Redis，这里将会是128，
+后面会看到。</p>
+
+<p>是不是很简单？接下来再获取端口和IP信息。</p>
+
+<h3 id="42-抓取port和ip信息">4.2 抓取Port和IP信息</h3>
+
+<p>浏览内核<code class="highlighter-rouge">inet_listen</code>代码发现，我们需要从<code class="highlighter-rouge">socket</code>对象中拿到<code class="highlighter-rouge">inet_sock</code>字段。从内
+核直接拷贝这两行代码，放到我们tracing程序的开始处：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// cast types. Intermediate cast not needed, kept for readability</span>
+<span class="k">struct</span> <span class="n">sock</span> <span class="o">*</span><span class="n">sk</span> <span class="o">=</span> <span class="n">sock</span><span class="o">-&gt;</span><span class="n">sk</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">inet_sock</span> <span class="o">*</span><span class="n">inet</span> <span class="o">=</span> <span class="n">inet_sk</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>现在Port可以从<code class="highlighter-rouge">inet-&gt;inet_sport</code>中获得，注意是网络序（大端）。</p>
+
+<p>如此简单！再更新下打印：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">bpf_trace_printk</span><span class="p">(</span><span class="s">"Listening on port %d!</span><span class="se">\\</span><span class="s">n"</span><span class="p">,</span> <span class="n">inet</span><span class="o">-&gt;</span><span class="n">inet_sport</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>运行：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ubuntu@bcc:~/dev/listen-evts<span class="nv">$ </span><span class="nb">sudo</span> /python tcv4listen.py
+...
+R1 invalid mem access <span class="s1">'inv'</span>
+...
+Exception: Failed to load BPF program kprobe__inet_listen
+</code></pre></div></div>
+
+<p>从出错信息看，内核检测器无法证明这个程序的内存访问是合法的。解决办法是让内存访问
+变得更加显式：使用受信任的<code class="highlighter-rouge">bpf_probe_read</code>函数，只要有必要的安全检测，可以用它读
+取任何内存地址。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Explicit initialization. The "=0" part is needed to "give life" to the variable on the stack</span>
+<span class="n">u16</span> <span class="n">lport</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="c1">// Explicit arbitrary memory access. Read it:</span>
+<span class="c1">// Read into 'lport', 'sizeof(lport)' bytes from 'inet-&gt;inet_sport' memory location</span>
+<span class="n">bpf_probe_read</span><span class="p">(</span><span class="o">&amp;</span><span class="n">lport</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">lport</span><span class="p">),</span> <span class="o">&amp;</span><span class="p">(</span><span class="n">inet</span><span class="o">-&gt;</span><span class="n">inet_sport</span><span class="p">));</span>
+</code></pre></div></div>
+
+<p>获取IP与此类似，从<code class="highlighter-rouge">inet-&gt;inet_rcv_saddr</code>读取。综上，现在我们可以读取backlog，
+port和绑定的IP：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">bcc</span> <span class="kn">import</span> <span class="n">BPF</span>
+
+<span class="c1"># BPF Program
+</span><span class="n">bpf_text</span> <span class="o">=</span> <span class="s">"""
+#include &lt;net/sock.h&gt;
+#include &lt;net/inet_sock.h&gt;
+#include &lt;bcc/proto.h&gt;
+
+// Send an event for each IPv4 listen with PID, bound address and port
+int kprobe__inet_listen(struct pt_regs *ctx, struct socket *sock, int backlog)
+{
+    // Cast types. Intermediate cast not needed, kept for readability
+    struct sock *sk = sock-&gt;sk;
+    struct inet_sock *inet = inet_sk(sk);
+
+    // Working values. You *need* to initialize them to give them "life" on the stack and use them afterward
+    u32 laddr = 0;
+    u16 lport = 0;
+
+    // Pull in details. As 'inet_sk' is internally a type cast, we need to use 'bpf_probe_read'
+    // read: load into 'laddr' 'sizeof(laddr)' bytes from address 'inet-&gt;inet_rcv_saddr'
+    bpf_probe_read(&amp;laddr, sizeof(laddr), &amp;(inet-&gt;inet_rcv_saddr));
+    bpf_probe_read(&amp;lport, sizeof(lport), &amp;(inet-&gt;inet_sport));
+
+    // Push event
+    bpf_trace_printk("Listening on </span><span class="si">%</span><span class="s">x </span><span class="si">%</span><span class="s">d with </span><span class="si">%</span><span class="s">d pending connections</span><span class="se">\\</span><span class="s">n", ntohl(laddr), ntohs(lport), backlog);
+    return 0;
+};
+"""</span>
+
+<span class="c1"># Build and Inject BPF
+</span><span class="n">b</span> <span class="o">=</span> <span class="n">BPF</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">bpf_text</span><span class="p">)</span>
+
+<span class="c1"># Print debug output
+</span><span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+  <span class="k">print</span> <span class="n">b</span><span class="o">.</span><span class="n">trace_readline</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>输出信息：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>bcc<span class="o">)</span>ubuntu@bcc:~/dev/listen-evts<span class="nv">$ </span><span class="nb">sudo </span>python tcv4listen.py
+nc-5024  <span class="o">[</span>000] d... 25821.166286: : Listening on 7f000001 4242 with 1 pending connections
+</code></pre></div></div>
+
+<p>这里IP是用16进制打印的，没有转换成人类可读的格式。</p>
+
+<p>注：你可能会有疑问，为什么<code class="highlighter-rouge">ntohs</code>和<code class="highlighter-rouge">ntohl</code>并不是受信任的，却可以在BPF里被调用。
+这是因为他们是定义在<code class="highlighter-rouge">.h</code>文件中的内联函数，在写作本文期间，修了一个与此相关的小
+<a href="https://github.com/iovisor/bcc/pull/453">bug</a>。</p>
+
+<p>接下来，我们想获取相关的容器（container）。对于网络，这意味着我们要获得网络命名
+空间。网络命名空间是容器的基石之一，使得（docker等）容器拥有隔离的网络。</p>
+
+<h3 id="43-抓取网络命名空间信息">4.3 抓取网络命名空间信息</h3>
+
+<p>在用户空间，可以在<code class="highlighter-rouge">/proc/PID/ns/net</code>下面查看网络命名空间。格式类似于
+<code class="highlighter-rouge">net:[4026531957]</code>。中括号中的数字是网络命名空间的inode值。这意味着，想获取命名
+空间，我们直接去读<code class="highlighter-rouge">/proc</code>就行了。但是，这种方式太粗暴，只适用于运行时间比较短的
+进程；而且还存在竞争。我们接下来从kernel直接读取inode值，幸运的是，这很容易：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Create an populate the variable</span>
+<span class="n">u32</span> <span class="n">netns</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="c1">// Read the netns inode number, like /proc does</span>
+<span class="n">netns</span> <span class="o">=</span> <span class="n">sk</span><span class="o">-&gt;</span><span class="n">__sk_common</span><span class="p">.</span><span class="n">skc_net</span><span class="p">.</span><span class="n">net</span><span class="o">-&gt;</span><span class="n">ns</span><span class="p">.</span><span class="n">inum</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>更新打印格式：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">bpf_trace_printk</span><span class="p">(</span><span class="s">"Listening on %x %d with %d pending connections in container %d</span><span class="se">\\</span><span class="s">n"</span><span class="p">,</span> <span class="n">ntohl</span><span class="p">(</span><span class="n">laddr</span><span class="p">),</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">lport</span><span class="p">),</span> <span class="n">backlog</span><span class="p">,</span> <span class="n">netns</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>执行的时候，遇到如下错误：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>bcc<span class="o">)</span>ubuntu@bcc:~/dev/listen-evts<span class="nv">$ </span><span class="nb">sudo </span>python tcv4listen.py
+error: <span class="k">in function </span>kprobe__inet_listen i32 <span class="o">(</span>%struct.pt_regs<span class="k">*</span>, %struct.socket<span class="k">*</span>, i32<span class="o">)</span>
+too many args to 0x1ba9108: i64 <span class="o">=</span> Constant&lt;6&gt;
+</code></pre></div></div>
+
+<p>clang想告诉你的是：<code class="highlighter-rouge">bpf_trace_printk</code>只能带4个参数，而你传了5个给它。这里我不展
+开，只告诉你结论：这是BPF的限制。如果你想深入了解，<a href="http://lxr.free-electrons.com/source/kernel/trace/bpf_trace.c#L86">这里
+</a>是一个不错的
+入门点。</p>
+
+<p>唯一解决这个问题的办法就是。。把eBPF做到生产ready（写作本文时还没，因此eBPF的探
+索就都这里了，译者注）。所以接下来我们换到perf，它支持传递任意大小的结构体到用户
+空间。注意需要Linux 4.4以上内核。</p>
+
+<p>要使用perf，我们需要：</p>
+
+<ol>
+  <li>定义一个结构体</li>
+  <li>声明一个事件</li>
+  <li>推送（push）事件</li>
+  <li>在Python端再定义一遍这个事件（将来这一步就不需要了）</li>
+  <li>消费并格式化输出事件</li>
+</ol>
+
+<p>看起来要做的事情很多，其实不是。</p>
+
+<p>C端：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// At the begining of the C program, declare our event</span>
+<span class="k">struct</span> <span class="n">listen_evt_t</span> <span class="p">{</span>
+    <span class="n">u64</span> <span class="n">laddr</span><span class="p">;</span>
+    <span class="n">u64</span> <span class="n">lport</span><span class="p">;</span>
+    <span class="n">u64</span> <span class="n">netns</span><span class="p">;</span>
+    <span class="n">u64</span> <span class="n">backlog</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="n">BPF_PERF_OUTPUT</span><span class="p">(</span><span class="n">listen_evt</span><span class="p">);</span>
+
+<span class="c1">// In kprobe__inet_listen, replace the printk with</span>
+<span class="k">struct</span> <span class="n">listen_evt_t</span> <span class="n">evt</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">.</span><span class="n">laddr</span> <span class="o">=</span> <span class="n">ntohl</span><span class="p">(</span><span class="n">laddr</span><span class="p">),</span>
+    <span class="p">.</span><span class="n">lport</span> <span class="o">=</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">lport</span><span class="p">),</span>
+    <span class="p">.</span><span class="n">netns</span> <span class="o">=</span> <span class="n">netns</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">backlog</span> <span class="o">=</span> <span class="n">backlog</span><span class="p">,</span>
+<span class="p">};</span>
+<span class="n">listen_evt</span><span class="p">.</span><span class="n">perf_submit</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">evt</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">evt</span><span class="p">));</span>
+</code></pre></div></div>
+
+<p>Python端事情稍微多一点：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># We need ctypes to parse the event structure
+</span><span class="kn">import</span> <span class="nn">ctypes</span>
+
+<span class="c1"># Declare data format
+</span><span class="k">class</span> <span class="nc">ListenEvt</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+    <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s">"laddr"</span><span class="p">,</span>   <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+        <span class="p">(</span><span class="s">"lport"</span><span class="p">,</span>   <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+        <span class="p">(</span><span class="s">"netns"</span><span class="p">,</span>   <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+        <span class="p">(</span><span class="s">"backlog"</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+    <span class="p">]</span>
+
+<span class="c1"># Declare event printer
+</span><span class="k">def</span> <span class="nf">print_event</span><span class="p">(</span><span class="n">cpu</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+    <span class="n">event</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ListenEvt</span><span class="p">))</span><span class="o">.</span><span class="n">contents</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Listening on </span><span class="si">%</span><span class="s">x </span><span class="si">%</span><span class="s">d with </span><span class="si">%</span><span class="s">d pending connections in container </span><span class="si">%</span><span class="s">d"</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">laddr</span><span class="p">,</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">lport</span><span class="p">,</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">backlog</span><span class="p">,</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">netns</span><span class="p">,</span>
+    <span class="p">))</span>
+
+<span class="c1"># Replace the event loop
+</span><span class="n">b</span><span class="p">[</span><span class="s">"listen_evt"</span><span class="p">]</span><span class="o">.</span><span class="n">open_perf_buffer</span><span class="p">(</span><span class="n">print_event</span><span class="p">)</span>
+<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+    <span class="n">b</span><span class="o">.</span><span class="n">kprobe_poll</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>测试一下，这里我用一个跑在容器里的redis，在宿主机上用<code class="highlighter-rouge">nc</code>命令：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>bcc<span class="o">)</span>ubuntu@bcc:~/dev/listen-evts<span class="nv">$ </span><span class="nb">sudo </span>python tcv4listen.py
+Listening on 0 6379 with 128 pending connections <span class="k">in </span>container 4026532165
+Listening on 0 6379 with 128 pending connections <span class="k">in </span>container 4026532165
+Listening on 7f000001 6588 with 1 pending connections <span class="k">in </span>container 4026531957
+</code></pre></div></div>
+
+<h2 id="5-结束语">5 结束语</h2>
+
+<p>使用eBPF，任何内核的函数调用都可以转换成事件触发的方式。
+本文也展示了笔者过程中遇到的一些常见的坑。完整代码（包括IPv6支持）码见
+<a href="https://github.com/iovisor/bcc/blob/master/tools/solisten.py">https://github.com/iovisor/bcc/blob/master/tools/solisten.py</a>
+，感谢bcc team的支持，现在它已经是一个正式工具。</p>
+
+<p>如果想更深入的了解这个topic，建议阅读Brendan Gregg的博客，尤其是关于eBPF的maps和
+statistics的<a href="http://www.brendangregg.com/blog/2015-05-15/ebpf-one-small-step.html">这一篇</a>。
+Brendan Gregg是这个项目的主要贡献者之一。</p>
+
+
+  <!-- POST NAVIGATION -->
+  <div class="postNav clearfix">
+     
+      <a class="prev" href="/blog/trace-packet-zh-3/"><span>&laquo;&nbsp;[译] 网络包内核路径跟踪：3 eBPF</span>
+      
+    </a>
+      
+      
+      <a class="next" href="/blog/tuning-stack-rx-zh-1/"><span>[译] Linux网络栈监控和调优：接收数据 1&nbsp;&raquo;</span>
+       
+      </a>
+     
+  </div>
+</div>
+
+
+         
+
+      </div>
+   </div><!-- end .content -->
+
+   <div class="footer">
+   <div class="container">
+      <p class="copy">&copy; 2016-2019
+      <a href="https://arthurchiao.github.io">Arthur Chiao</a>, Powered by
+      <a href="http://jekyllrb.com">Jekyll </a>, Theme originated from
+      <a href="https://github.com/brianmaierjr/long-haul"> Long Haul.</a>
+
+      <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+      <span id="busuanzi_container_site_pv"> Site visits:
+          <span id="busuanzi_value_site_pv"></span>, powered by<a href="http://busuanzi.ibruce.info/"> busuanzi</a>
+      </span>
+
+      </p>
+
+      <div class="footer-links"> 
+         <ul class="noList"> 
+            
+            <li><a href="https://www.facebook.com/profile.php?id=100014334455077">
+                  <svg id="facebook-square" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M82.667,1H17.335C8.351,1,1,8.351,1,17.336v65.329c0,8.99,7.351,16.335,16.334,16.335h65.332 C91.652,99.001,99,91.655,99,82.665V17.337C99,8.353,91.652,1.001,82.667,1L82.667,1z M84.318,50H68.375v42.875H50V50h-8.855V35.973 H50v-9.11c0-12.378,5.339-19.739,19.894-19.739h16.772V22.3H72.967c-4.066-0.007-4.57,2.12-4.57,6.078l-0.023,7.594H86.75 l-2.431,14.027V50z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://linkedin.com/in/yanan-zhao-7691317b?trk=hp-identity-photo">
+                  <svg id="linkedin" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M99.001,19.428c-3.606,1.608-7.48,2.695-11.547,3.184c4.15-2.503,7.338-6.466,8.841-11.189 c-3.885,2.318-8.187,4-12.768,4.908c-3.667-3.931-8.893-6.387-14.676-6.387c-11.104,0-20.107,9.054-20.107,20.223 c0,1.585,0.177,3.128,0.52,4.609c-16.71-0.845-31.525-8.895-41.442-21.131C6.092,16.633,5.1,20.107,5.1,23.813 c0,7.017,3.55,13.208,8.945,16.834c-3.296-0.104-6.397-1.014-9.106-2.529c-0.002,0.085-0.002,0.17-0.002,0.255 c0,9.799,6.931,17.972,16.129,19.831c-1.688,0.463-3.463,0.71-5.297,0.71c-1.296,0-2.555-0.127-3.783-0.363 c2.559,8.034,9.984,13.882,18.782,14.045c-6.881,5.424-15.551,8.657-24.971,8.657c-1.623,0-3.223-0.096-4.796-0.282 c8.898,5.738,19.467,9.087,30.82,9.087c36.982,0,57.206-30.817,57.206-57.543c0-0.877-0.02-1.748-0.059-2.617 C92.896,27.045,96.305,23.482,99.001,19.428z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://github.com/ArthurChiao">
+                  <svg id="github" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M79.099,79.099 c-3.782,3.782-8.184,6.75-13.083,8.823c-1.245,0.526-2.509,0.989-3.79,1.387v-7.344c0-3.86-1.324-6.699-3.972-8.517 c1.659-0.16,3.182-0.383,4.57-0.67c1.388-0.287,2.855-0.702,4.402-1.245c1.547-0.543,2.935-1.189,4.163-1.938 c1.228-0.75,2.409-1.723,3.541-2.919s2.082-2.552,2.847-4.067s1.372-3.334,1.818-5.455c0.446-2.121,0.67-4.458,0.67-7.01 c0-4.945-1.611-9.155-4.833-12.633c1.467-3.828,1.308-7.991-0.478-12.489l-1.197-0.143c-0.829-0.096-2.321,0.255-4.474,1.053 c-2.153,0.798-4.57,2.105-7.249,3.924c-3.797-1.053-7.736-1.579-11.82-1.579c-4.115,0-8.039,0.526-11.772,1.579 c-1.69-1.149-3.294-2.097-4.809-2.847c-1.515-0.75-2.727-1.26-3.637-1.532c-0.909-0.271-1.754-0.439-2.536-0.503 c-0.782-0.064-1.284-0.079-1.507-0.048c-0.223,0.031-0.383,0.064-0.478,0.096c-1.787,4.53-1.946,8.694-0.478,12.489 c-3.222,3.477-4.833,7.688-4.833,12.633c0,2.552,0.223,4.889,0.67,7.01c0.447,2.121,1.053,3.94,1.818,5.455 c0.765,1.515,1.715,2.871,2.847,4.067s2.313,2.169,3.541,2.919c1.228,0.751,2.616,1.396,4.163,1.938 c1.547,0.543,3.014,0.957,4.402,1.245c1.388,0.287,2.911,0.511,4.57,0.67c-2.616,1.787-3.924,4.626-3.924,8.517v7.487 c-1.445-0.43-2.869-0.938-4.268-1.53c-4.899-2.073-9.301-5.041-13.083-8.823c-3.782-3.782-6.75-8.184-8.823-13.083 C9.934,60.948,8.847,55.56,8.847,50s1.087-10.948,3.231-16.016c2.073-4.899,5.041-9.301,8.823-13.083s8.184-6.75,13.083-8.823 C39.052,9.934,44.44,8.847,50,8.847s10.948,1.087,16.016,3.231c4.9,2.073,9.301,5.041,13.083,8.823 c3.782,3.782,6.75,8.184,8.823,13.083c2.143,5.069,3.23,10.457,3.23,16.016s-1.087,10.948-3.231,16.016 C85.848,70.915,82.88,75.317,79.099,79.099L79.099,79.099z"></path>
+                  </svg>
+            </a></li>
+             
+            
+            <li><a href="mailto:arthurchiao@hotmail.com">
+                  <svg id="mail" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M25.5,25.5h49 c0.874,0,1.723,0.188,2.502,0.542L50,57.544L22.998,26.041C23.777,25.687,24.626,25.499,25.5,25.5L25.5,25.5z M19.375,68.375v-36.75 c0-0.128,0.005-0.256,0.014-0.383l17.96,20.953L19.587,69.958C19.448,69.447,19.376,68.916,19.375,68.375L19.375,68.375z M74.5,74.5 h-49c-0.541,0-1.072-0.073-1.583-0.212l17.429-17.429L50,66.956l8.653-10.096l17.429,17.429C75.572,74.427,75.041,74.5,74.5,74.5 L74.5,74.5z M80.625,68.375c0,0.541-0.073,1.072-0.211,1.583L62.652,52.195l17.96-20.953c0.008,0.127,0.014,0.255,0.014,0.383 L80.625,68.375L80.625,68.375z"></path>
+                  </svg>
+            </a></li>
+            
+         </ul>
+      </div>
+   </div>
+</div><!-- end .footer -->
+
+   <!-- Add jQuery and other scripts -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src=""><\/script>')</script>
+<script src="/assets/js/dropcap.min.js"></script>
+<script src="/assets/js/responsive-nav.min.js"></script>
+<script src="/assets/js/scripts.js"></script>
+
+
+</body>
+
+</html>

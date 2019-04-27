@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8" <![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9" <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+       })(window,document,'script','dataLayer','GTM-WP54B9K');</script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>[译] 你是一名软件架构师吗？</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+    <!-- Come and get me RSS readers -->
+    <link rel="alternate" type="application/rss+xml" title="ArthurChiao's Blog" href="http://0.0.0.0:4000/feed.xml" />
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <!--[if IE 8]><link rel="stylesheet" href="/assets/css/ie.css"><![endif]-->
+    <link rel="canonical" href="http://0.0.0.0:4000/blog/are-you-a-software-architect-zh/">
+
+    <!-- Modernizr -->
+    <script src="/assets/js/modernizr.custom.15390.js" type="text/javascript"></script>
+
+    
+</head>
+
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WP54B9K"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+    <div class="header">
+     <div class="container">
+         <h1 class="logo"><a href="/">ArthurChiao's Blog</a></h1>
+         <nav class="nav-collapse">
+             <ul class="noList">
+                 
+                   
+                   
+                   <li class="element first  ">
+                     <a href="/index.html">Home</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles">Articles</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles-zh">Articles (中文)</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/categories">Categories</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   last">
+                     <a href="/about">About</a>
+                   </li> 
+                 
+                 <!-- <li> <a href="https://github.com/arthurchiao/reading" target="_blank">Reading</a></li> -->
+                 <!-- <li> <a href="https://github.com/arthurchiao/" target="_blank">GitHub</a></li> -->
+             </ul>
+         </nav>
+     </div>
+ </div><!-- end .header -->
+
+
+   <div class="content">
+      <div class="container">
+         <div class="post">
+  
+  <h1 class="postTitle">[译] 你是一名软件架构师吗？</h1>
+  <p class="meta">2019-03-18 | <span class="time">3</span> Minute Read</p>
+
+  
+  
+  <h3 id="译者序">译者序</h3>
+
+<p>本文翻译自 2019 年的一篇英文博客 <a href="https://www.infoq.com/articles/brown-are-you-a-software-architect">Are You A Software Architect?</a>
+。</p>
+
+<p><strong>由于译者水平有限，本文不免存在遗漏或错误之处。如有疑问，请查阅原文。</strong></p>
+
+<p>以下是译文。</p>
+
+<hr />
+
+<p>软件开发（software development）和软件架构（software
+architecture）之间有一条微妙的线。有人会说，这条线根本不存在，架构只是开发者设计
+过程的简单延伸（an extension of the design process）。另外一部分人则说，这是一条
+巨大的鸿沟（a massive gaping chasm），只有少数出类拔萃的开发者才能跨越，这些开发
+者都认为你必须不断地向上抽象（always abstract your abstractions），而避免陷入令
+人生厌的实现细节的泥沼。如果以务实的（pragmatic）眼光看，那这两者之间必定存在某
+个平衡点，但这接着也提出了问题：<strong>你如何从开发者变成架构师？</strong></p>
+
+<p>将软件架构从软件设计和开发中区分开来的关键因素包括：规模的上升、抽象层次的上升，
+以及做出正确的设计决策带来的影响的上升等等。软件架构就在于能有一个全局视角（
+holistic view）、能看到更大的图，以理解软件系统作为一个整体是如何工作的。
+这些因素对区分软件开发和软件架构也许有帮助，但还是无法解释一些人如何从开发转到了
+架构。进一步地，它无助于识别哪些人将会成为出色的架构师、如果你是 HR 你如何寻找这
+些人，以及<strong>你是否是一个架构师</strong>。</p>
+
+<h2 id="经验experience">经验（Experience）</h2>
+
+<p><strong>经验是一个很好的衡量指标，但你应该看地更深</strong>（<strong>Experience is a good gauge but
+you need to look deeper</strong>）。</p>
+
+<p>没有人是在一夜之间或一次升职就成为软件架构师的。<strong>架构师是一个角色（role），而非
+级别（rank）</strong>。它是一个演进的过程，在这个过程中你会不断增长承担这个角色所需的经
+验与自信。</p>
+
+<p>架构师身上有许多不同的品质，而他们过去的经验通常是他们承担这个角色所需能力的一种
+很好的度量（gauge）。架构师的角色包括很多方面，因此你需要在更深层次地去看，理解他们
+在不同方面展现出来的参与度、影响力、领导力和责任。</p>
+
+<p>宽泛地说，大部分项目的软件架构过程可以分成两个阶段：<strong>定义阶段</strong>和<strong>交付阶段</strong>（
+the architecture is defined and then it’s delivered）。</p>
+
+<h2 id="软件架构的定义definition">软件架构的定义（definition）</h2>
+
+<p>架构的定义过程似乎相当直接：<strong>确定需求，然后设计一个满足这些需求的系统</strong>。但实际
+中并没有这样简单，随着你的参与程度（how engaged you are）和你对待自己角色的认真程
+度（how seriously you view your role）的不同，软件架构的角色也有很大变化。如下图
+所示，角色的架构定义部分可以进一步分解为几个子部分。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/role-definition.png" width="40%" height="40%" /></p>
+
+<h3 id="1-非功能non-functional需求的管理">1 非功能（non-functional）需求的管理</h3>
+
+<p>软件项目经常将注意力放在用户的<strong>功能需求</strong>（features）上，而很少问用户有什么
+<strong>非功能需求</strong>（或系统性能）。有时需求方会告诉我们说“系统必须足够快”，但这种
+表述太主观了。要满足非功能需求，那这些需要必须是<strong>具体的、可测量的、可实现
+的以及可测试的</strong>（specific，measurable，achievable and testable）。</p>
+
+<p>大部分非功能需求本质上是技术性的，而且通常对软件架构有很大影响。<strong>理解非功能需求
+是架构师角色的核心能力之一</strong>，但是，<strong>试图理解这些需求</strong>和<strong>质疑这些需求</strong>（是否
+合理）还是有区别的。毕竟，你见过多少真正需要 7x24 小时运行的系统？</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-definition-1.png" width="60%" height="60%" /></p>
+
+<h3 id="2-架构定义architecture-definition">2 架构定义（architecture definition）</h3>
+
+<p>弄清了非功能需求后，下一步就要思考如何定义架构，解决需求方提出的问题。
+<strong>我们可以说每个软件系统都有架构，但是，不是每个软件系统都有定义出来的架构</strong>（
+defined architecture）。这才是关键点。</p>
+
+<p>软件定义过程需要思考如何在给定的限制下满足提出的需求，进而解决问题。架构定义过
+程是在项目的技术方面引入结构、规范、原则和领导力的过程。定义架构是你作为软件架
+构师的工作，但是，从头设计一个软件系统和扩展一个已有系统还是有很大差别的。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-definition-2.png" width="60%" height="60%" /></p>
+
+<h3 id="3-技术选择technology-selection">3 技术选择（technology selection）</h3>
+
+<p>技术选择通常是一个愉快的过程，但是，当考虑到成本、授权、供应商关系、技术策略
+、兼容性、互操作性、支持、部署、升级策略、终端用户环境等等问题时，挑战也是很大的。
+这些因素综合起来，经常把一个简单的选择某些东西（例如一个功能丰富的客户端）的任
+务变成一个十足的噩梦。</p>
+
+<p>接下来还有另一个问题：这些技术能否工作。</p>
+
+<p><strong>技术选择是管理风险的过程</strong>（technology selection is all about managing
+risk）；在高复杂度或不确定性的地方减少风险，在可能带来收益的地方允许引进风险。技
+术决策需要考虑所有的因素，并需要评审和评估。这包括软件项目的主要组成模块，以及开
+发过程会用到的库和框架。如果你在定义架构，那你需要确信自己的技术选择是正确的。同
+样地，为一个新系统评估技术和向现有系统添加技术是有很大区别的。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-definition-3.png" width="60%" height="60%" /></p>
+
+<h3 id="4-架构评估architecture-evaluation">4 架构评估（architecture evaluation）</h3>
+
+<p>如果是你设计软件，你需要问自己：我的架构能否工作？</p>
+
+<p>对于我来说，如下的架构就算是工作的：满足非功能需求；为其他部分的代码提供了必要的
+基础（provides the necessary foundation for the rest of the code）；为解决底层的
+业务问题提供了一个平台。</p>
+
+<p>软件最大的问题之一就是它的复杂和抽象，这使得很难从UML 图或代码去联想出（visualize）
+软件的运行时特点。在软件开发的过程中，我们会采用多种测试技术，以确保交付的系统在
+上线之后能正常工作。为什么不对架构设计采用同样的方式呢？如果你可以测试你的架构，
+那你就可以证明它能工作。这项工作做的越早，就越可以减少项目失败的风险，而不用简单
+的寄希望于它能正常工作。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-definition-4.png" width="60%" height="60%" /></p>
+
+<h3 id="5-架构合作architecture-collaboration">5 架构合作（architecture collaboration）</h3>
+
+<p>与世隔绝的软件系统很少见，大部分软件系统都是需要人去理解它的。开发人员需要理解它
+，并按照架构实现它；需求方出于安全、数据库、运维、支持等角度，也可能对它的实现感
+兴趣。要使软件成功，你需要与这些需求方紧密合作，保证架构能够和环境成功集成。不幸
+的是，架构合作在开发组内都很少发生，更遑论外部的需求方了。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-definition-5.png" width="60%" height="60%" /></p>
+
+<h2 id="软件架构的交付delivery">软件架构的交付（delivery）</h2>
+
+<p>架构交付的部分也是类似，软件架构的角色会随着参与度（level of engagement）的不同
+而不同。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/role-delivery.png" width="40%" height="40%" /></p>
+
+<h3 id="1-把控更大的图ownership-of-the-bigger-picture">1 把控更大的图（ownership of the bigger picture）</h3>
+
+<p>要确保架构成功落地，必须得有人在软件开发的整个生命周期内把握整张大图、向大家描绘
+前景（sells the vision）。如有必要，要跟随项目一起演进，承担将它成功交付的责任
+。如果你定义了一个架构，那始终保持对架构的参与和演进是很有意义的，而不是将它交给
+“实现团队”（implementation team）。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-delivery-1.png" width="60%" height="60%" /></p>
+
+<h3 id="2-领导力leadership">2 领导力（leadership）</h3>
+
+<p>把控大图是技术领导力的一部分，但软件项目的交付期间，还有其它一些事情要做。包括：
+向大家介绍责任（的重要性）、提供技术规范、做技术决策，以及具备做这种决策的权威。</p>
+
+<p>作为架构师，你需要承担技术领导力，以保证所有的事情都考虑到了，而且团队走在正确的
+道路上。软件架构师的位置天然就是关于领导力的，这虽然听起来显而易见，但很多团队中
+架构师可能认为成功的交付并不是一个他们需要考虑的问题，因而并不具备所需的技术领导
+力。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-delivery-2.png" width="60%" height="60%" /></p>
+
+<h3 id="3-培训团队和指导下属coaching-and-mentoring">3 培训团队和指导下属（coaching and mentoring）</h3>
+
+<p>培训团队和指导下属是大部分软件开发项目中容易被忽视的一项活动，导致的后果就是，一
+些团队成员并没有得到他们应该得到的帮助。虽然技术领导力是关于对项目整体进行掌舵（
+steering），但也有一些时候个人需要帮助。而且，培训团队和指导下属提供了一种增强队
+员技能和提升他们职业生涯的方式。</p>
+
+<p>这是架构师职责的一部分（this is something that should fall squarely within the
+remit of the software architect），而且很显然，给你的团队培训架构和设计技能与
+助他们解决代码问题之间还是有明显区别的。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-delivery-3.png" width="60%" height="60%" /></p>
+
+<h3 id="4-质量保障quality-assurance">4 质量保障（quality assurance）</h3>
+
+<p>如果交付工作做的太差的话，那即使有世界上最好的架构和最强的领导力，项目仍然会失败。</p>
+
+<p>质量保障是架构师角色中的很大一部分，但它远非仅仅是 code
+review。例如，你需要有基准的性能指标，这意味着需要引入标准和工作惯例（standards
+and working
+practices）。从软件开发的角度讲，这包括：编码标准、设计原则，以及源代码分析工具
+等等。我们可以肯定地说，大部分项目的质量保障做的并不够，因此你需要辨别出哪些是重
+要的，并优先保证这些部分被执行。对于我来说，一切对架构有重要影响的，或对业务非常
+关键的，或复杂的，或高度可视化的东西都是重要的。你需要务实，意识到你无法保障所有
+方面，但是做一部分总是比什么都不做好。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-delivery-4.png" width="60%" height="60%" /></p>
+
+<h3 id="5-设计开发和测试designdevelopment-and-testing">5 设计、开发和测试（design，development and testing）</h3>
+
+<p>软件架构师角色的最后任务就是设计、开发和测试。作为一名工作在一线的架构师并不意味
+着你必须参与每天的写代码任务，而是说你要持续的参与到项目中，积极主动地去帮助打造
+和交付它。话已至此，那我们不禁要说，为什么每天写代码不应该成为架构师角色的一部分
+呢？大部分架构师都是经验丰富的程序员，因此保持这项技能的状态是有意义的。除此之外
+，架构师还能经历团队成员都会经历的痛苦，在此过程中可以帮助他们从开发的角度理解他
+们设计出来的架构。一些公司明令禁止他们的架构师参与编码工作，因为觉得他们的架构
+师太宝贵了，不应该从事编码这样普通的工作。显然，这种态度是错误的，如果你不让他
+们参与成功交付的过程，那又为什么让他花精力设计架构呢？</p>
+
+<p>当然，有些情况下让架构师参与到写代码的程度确实不太可行。例如，一个大型项目通常意
+味着需要考虑很大一张图，因而不一定有时间参与到实现过程。但通常来说，写代码的
+架构师比只是旁观的架构师更加高效和快乐。</p>
+
+<p align="center"><img src="/assets/img/are-you-a-software-architect/architecture-delivery-5.png" width="60%" height="60%" /></p>
+
+<h2 id="你是一名软件架构师吗">你是一名软件架构师吗？</h2>
+
+<p>不管将软件开发和软件架构之间的那条线看作是神话还是鸿沟，本文讨论的内容都说明：软
+件架构师在这个角色上的经验都随着他们参与到项目的程度和他们对待自己角色的认真程度
+而异。大部分开发者都不会周一早上醒来就宣称自己是一名软件架构师了。我自己当然不是
+这样，我成为架构师的过程是一个演进的过程。其实，一部分开发者可能已经在承担部分软
+件架构师的角色了，虽然他们的 title 并没有显示这一点。</p>
+
+<p>参与一个软件系统的架构（contributing to the architecture of a software system）
+和亲自设计一个软件的架构之间有很大不同。<strong>持续精进的技能、知识和跨多领域的经验成
+就了软件架构师的角色</strong>。</p>
+
+<p>跨越软件工程师和软件架构师的主动性在你自己，而首先要做的，就是了解你目前的经验所
+处的层次。</p>
+
+
+  <!-- POST NAVIGATION -->
+  <div class="postNav clearfix">
+     
+      <a class="prev" href="/blog/spine-leaf-design-zh/"><span>&laquo;&nbsp;[译] 数据中心网络：Spine-Leaf 架构设计综述</span>
+      
+    </a>
+      
+      
+      <a class="next" href="/blog/bgp-in-data-center-zh/"><span>[笔记] BGP in the Data Center (O'Reilly 2017)&nbsp;&raquo;</span>
+       
+      </a>
+     
+  </div>
+</div>
+
+
+         
+
+      </div>
+   </div><!-- end .content -->
+
+   <div class="footer">
+   <div class="container">
+      <p class="copy">&copy; 2016-2019
+      <a href="https://arthurchiao.github.io">Arthur Chiao</a>, Powered by
+      <a href="http://jekyllrb.com">Jekyll </a>, Theme originated from
+      <a href="https://github.com/brianmaierjr/long-haul"> Long Haul.</a>
+
+      <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+      <span id="busuanzi_container_site_pv"> Site visits:
+          <span id="busuanzi_value_site_pv"></span>, powered by<a href="http://busuanzi.ibruce.info/"> busuanzi</a>
+      </span>
+
+      </p>
+
+      <div class="footer-links"> 
+         <ul class="noList"> 
+            
+            <li><a href="https://www.facebook.com/profile.php?id=100014334455077">
+                  <svg id="facebook-square" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M82.667,1H17.335C8.351,1,1,8.351,1,17.336v65.329c0,8.99,7.351,16.335,16.334,16.335h65.332 C91.652,99.001,99,91.655,99,82.665V17.337C99,8.353,91.652,1.001,82.667,1L82.667,1z M84.318,50H68.375v42.875H50V50h-8.855V35.973 H50v-9.11c0-12.378,5.339-19.739,19.894-19.739h16.772V22.3H72.967c-4.066-0.007-4.57,2.12-4.57,6.078l-0.023,7.594H86.75 l-2.431,14.027V50z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://linkedin.com/in/yanan-zhao-7691317b?trk=hp-identity-photo">
+                  <svg id="linkedin" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M99.001,19.428c-3.606,1.608-7.48,2.695-11.547,3.184c4.15-2.503,7.338-6.466,8.841-11.189 c-3.885,2.318-8.187,4-12.768,4.908c-3.667-3.931-8.893-6.387-14.676-6.387c-11.104,0-20.107,9.054-20.107,20.223 c0,1.585,0.177,3.128,0.52,4.609c-16.71-0.845-31.525-8.895-41.442-21.131C6.092,16.633,5.1,20.107,5.1,23.813 c0,7.017,3.55,13.208,8.945,16.834c-3.296-0.104-6.397-1.014-9.106-2.529c-0.002,0.085-0.002,0.17-0.002,0.255 c0,9.799,6.931,17.972,16.129,19.831c-1.688,0.463-3.463,0.71-5.297,0.71c-1.296,0-2.555-0.127-3.783-0.363 c2.559,8.034,9.984,13.882,18.782,14.045c-6.881,5.424-15.551,8.657-24.971,8.657c-1.623,0-3.223-0.096-4.796-0.282 c8.898,5.738,19.467,9.087,30.82,9.087c36.982,0,57.206-30.817,57.206-57.543c0-0.877-0.02-1.748-0.059-2.617 C92.896,27.045,96.305,23.482,99.001,19.428z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://github.com/ArthurChiao">
+                  <svg id="github" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M79.099,79.099 c-3.782,3.782-8.184,6.75-13.083,8.823c-1.245,0.526-2.509,0.989-3.79,1.387v-7.344c0-3.86-1.324-6.699-3.972-8.517 c1.659-0.16,3.182-0.383,4.57-0.67c1.388-0.287,2.855-0.702,4.402-1.245c1.547-0.543,2.935-1.189,4.163-1.938 c1.228-0.75,2.409-1.723,3.541-2.919s2.082-2.552,2.847-4.067s1.372-3.334,1.818-5.455c0.446-2.121,0.67-4.458,0.67-7.01 c0-4.945-1.611-9.155-4.833-12.633c1.467-3.828,1.308-7.991-0.478-12.489l-1.197-0.143c-0.829-0.096-2.321,0.255-4.474,1.053 c-2.153,0.798-4.57,2.105-7.249,3.924c-3.797-1.053-7.736-1.579-11.82-1.579c-4.115,0-8.039,0.526-11.772,1.579 c-1.69-1.149-3.294-2.097-4.809-2.847c-1.515-0.75-2.727-1.26-3.637-1.532c-0.909-0.271-1.754-0.439-2.536-0.503 c-0.782-0.064-1.284-0.079-1.507-0.048c-0.223,0.031-0.383,0.064-0.478,0.096c-1.787,4.53-1.946,8.694-0.478,12.489 c-3.222,3.477-4.833,7.688-4.833,12.633c0,2.552,0.223,4.889,0.67,7.01c0.447,2.121,1.053,3.94,1.818,5.455 c0.765,1.515,1.715,2.871,2.847,4.067s2.313,2.169,3.541,2.919c1.228,0.751,2.616,1.396,4.163,1.938 c1.547,0.543,3.014,0.957,4.402,1.245c1.388,0.287,2.911,0.511,4.57,0.67c-2.616,1.787-3.924,4.626-3.924,8.517v7.487 c-1.445-0.43-2.869-0.938-4.268-1.53c-4.899-2.073-9.301-5.041-13.083-8.823c-3.782-3.782-6.75-8.184-8.823-13.083 C9.934,60.948,8.847,55.56,8.847,50s1.087-10.948,3.231-16.016c2.073-4.899,5.041-9.301,8.823-13.083s8.184-6.75,13.083-8.823 C39.052,9.934,44.44,8.847,50,8.847s10.948,1.087,16.016,3.231c4.9,2.073,9.301,5.041,13.083,8.823 c3.782,3.782,6.75,8.184,8.823,13.083c2.143,5.069,3.23,10.457,3.23,16.016s-1.087,10.948-3.231,16.016 C85.848,70.915,82.88,75.317,79.099,79.099L79.099,79.099z"></path>
+                  </svg>
+            </a></li>
+             
+            
+            <li><a href="mailto:arthurchiao@hotmail.com">
+                  <svg id="mail" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M25.5,25.5h49 c0.874,0,1.723,0.188,2.502,0.542L50,57.544L22.998,26.041C23.777,25.687,24.626,25.499,25.5,25.5L25.5,25.5z M19.375,68.375v-36.75 c0-0.128,0.005-0.256,0.014-0.383l17.96,20.953L19.587,69.958C19.448,69.447,19.376,68.916,19.375,68.375L19.375,68.375z M74.5,74.5 h-49c-0.541,0-1.072-0.073-1.583-0.212l17.429-17.429L50,66.956l8.653-10.096l17.429,17.429C75.572,74.427,75.041,74.5,74.5,74.5 L74.5,74.5z M80.625,68.375c0,0.541-0.073,1.072-0.211,1.583L62.652,52.195l17.96-20.953c0.008,0.127,0.014,0.255,0.014,0.383 L80.625,68.375L80.625,68.375z"></path>
+                  </svg>
+            </a></li>
+            
+         </ul>
+      </div>
+   </div>
+</div><!-- end .footer -->
+
+   <!-- Add jQuery and other scripts -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src=""><\/script>')</script>
+<script src="/assets/js/dropcap.min.js"></script>
+<script src="/assets/js/responsive-nav.min.js"></script>
+<script src="/assets/js/scripts.js"></script>
+
+
+</body>
+
+</html>

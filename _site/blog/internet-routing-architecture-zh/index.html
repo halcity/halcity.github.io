@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8" <![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9" <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+       })(window,document,'script','dataLayer','GTM-WP54B9K');</script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>[笔记] Internet Routing Architecture (Cisco Press, 2000)</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+    <!-- Come and get me RSS readers -->
+    <link rel="alternate" type="application/rss+xml" title="ArthurChiao's Blog" href="http://0.0.0.0:4000/feed.xml" />
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <!--[if IE 8]><link rel="stylesheet" href="/assets/css/ie.css"><![endif]-->
+    <link rel="canonical" href="http://0.0.0.0:4000/blog/internet-routing-architecture-zh/">
+
+    <!-- Modernizr -->
+    <script src="/assets/js/modernizr.custom.15390.js" type="text/javascript"></script>
+
+    
+</head>
+
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WP54B9K"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+    <div class="header">
+     <div class="container">
+         <h1 class="logo"><a href="/">ArthurChiao's Blog</a></h1>
+         <nav class="nav-collapse">
+             <ul class="noList">
+                 
+                   
+                   
+                   <li class="element first  ">
+                     <a href="/index.html">Home</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles">Articles</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles-zh">Articles (中文)</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/categories">Categories</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   last">
+                     <a href="/about">About</a>
+                   </li> 
+                 
+                 <!-- <li> <a href="https://github.com/arthurchiao/reading" target="_blank">Reading</a></li> -->
+                 <!-- <li> <a href="https://github.com/arthurchiao/" target="_blank">GitHub</a></li> -->
+             </ul>
+         </nav>
+     </div>
+ </div><!-- end .header -->
+
+
+   <div class="content">
+      <div class="container">
+         <div class="post">
+  
+  <h1 class="postTitle">[笔记] Internet Routing Architecture (Cisco Press, 2000)</h1>
+  <p class="meta">2019-04-08 | <span class="time">28</span> Minute Read</p>
+
+  
+  
+  <h3 id="关于本文">关于本文</h3>
+
+<p>本文是我在读 <a href="https://www.amazon.com/Internet-Routing-Architectures-2nd-Halabi/dp/157870233X">Internet Routing Architecture, 2nd Edition</a> （
+Cisco Press, 2000）时的读书笔记。</p>
+
+<p>注意这本书是 2000 年写的，因此有些内容可能已经过时，比如说到“当前大型网络都是使
+用 xxx 协议”的时候，说的是距今 20 年前的情况，现在则并不一定。</p>
+
+<p>本书致力于解决实际问题，书中包含大量的架构图、拓扑图和真实场景示例，内容全面而且
+易于上手，是不可多得的良心之作。本书目的是使读者成为<strong>将自有网络集成到全球互联网</strong>
+（integrating your network into the global Internet）领域的专家。</p>
+
+<p>以下是笔记内容。</p>
+
+<hr />
+
+<ol>
+  <li><a href="#chap_1">互联网的演进</a>
+    <ul>
+      <li>1.1 <a href="#chap_1.1">互联网：起源及近史</a></li>
+      <li>1.1 <a href="#chap_1.2">Network Access Points</a></li>
+      <li>1.1 <a href="#chap_1.3">Routing Arbiter Project</a></li>
+      <li>1.1 <a href="#chap_1.4">The Very High-Speed Backbone Network Service</a></li>
+      <li>1.1 <a href="#chap_1.5">Transitioning the Regional Networks from the NSFNET</a></li>
+      <li>1.1 <a href="#chap_1.6">NSF Solicits NIS Managers</a></li>
+      <li>1.1 <a href="#chap_1.7">Other Internet Registries</a></li>
+      <li>1.1 <a href="#chap_1.8">Internet Routing Registries</a></li>
+      <li>1.1 <a href="#chap_1.9">The Once and Future Internet</a></li>
+    </ul>
+  </li>
+  <li><a href="#chap_2">ISP Services and Characteristics</a>
+    <ul>
+      <li>2.1 ISP Services</li>
+      <li>2.2 ISP Service Pricing, Service-Level Agreements, and Technical Characteristics</li>
+    </ul>
+  </li>
+  <li><a href="#chap_3">IP 寻址和分配</a>
+    <ul>
+      <li>3.1 History of Internet Addressing</li>
+      <li>3.2 IP Address Space Depletion</li>
+      <li>3.3 Looking Ahead</li>
+      <li>3.4 Frequently Asked Questions</li>
+      <li>3.5 References</li>
+    </ul>
+  </li>
+  <li><a href="#chap_4">域间路由基础</a>
+    <ul>
+      <li>4.1 Overview of Routers and Routing</li>
+      <li>4.2 Routing Protocol Concepts</li>
+      <li>4.3 Segregating the World into Autonomous Systems</li>
+    </ul>
+  </li>
+  <li><a href="#chap_5">边界网关协议第 4 版（BGP-4）</a>
+    <ul>
+      <li>5.1 How BGP Works</li>
+      <li>5.2 BGP Capabilities Negotiation</li>
+      <li>5.3 Multiprotocol Extensions for BGP</li>
+      <li>5.4 TCP MD5 Signature Option</li>
+    </ul>
+  </li>
+  <li><a href="#chap_6">Tuning BGP Capabilities</a>
+    <ul>
+      <li>6.1 Building Peer Sessions</li>
+      <li>6.2 Sources of Routing Updates</li>
+      <li>6.3 Overlapping Protocols: Backdoors</li>
+      <li>6.4 The Routing Process Simplified</li>
+      <li>6.5 Controlling BGP Routes</li>
+      <li>6.6 Route Filtering and Attribute Manipulation</li>
+      <li>6.7 BGP-4 Aggregation</li>
+    </ul>
+  </li>
+  <li><a href="#chap_7">冗余、对称和负载均衡</a>
+    <ul>
+      <li>7.1 Redundancy</li>
+      <li>7.2 Symmetry</li>
+      <li>7.3 Load Balancing</li>
+      <li>7.4 Specific Scenarios: Designing Redundancy, Symmetry, and Load Balancing</li>
+    </ul>
+  </li>
+  <li><a href="#chap_8">AS 内部路由控制</a>
+    <ul>
+      <li>8.1 <a href="#chap_8.1">Interaction of Non-BGP Routers with BGP Routers</a></li>
+      <li>8.2 BGP Policies Conflicting with Internal Defaults</li>
+      <li>8.3 Policy Routing</li>
+    </ul>
+  </li>
+  <li><a href="#chap_9">大型 AS 控制管理</a>
+    <ul>
+      <li>9.1 Route Reflectors</li>
+      <li>9.2 Confederations</li>
+      <li>9.3 Controlling IGP Expansion</li>
+    </ul>
+  </li>
+  <li><a href="#chap_10">设计稳定的因特网</a>
+    <ul>
+      <li>10.1 因特网路由的不稳定性</li>
+      <li>10.2 BGP Stability Features</li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>互联网（Internet）起源于 1960s 的一个学术实验。</p>
+
+<p>一些人惊讶于网络会发生故障，另外一些人则惊讶于网络竟然会运行良好。</p>
+
+<h3 id="目标">目标</h3>
+
+<p>本书致力于使读者成为<strong>将自有网络集成到全球互联网</strong>（integrating your network
+into the global Internet）领域的专家。</p>
+
+<p>本书致力于解决实际问题，书中包含大量的架构图、拓扑图和真实场景示例，内容全面而且
+易于上手（comprehensive and accessible）。</p>
+
+<h3 id="目标读者">目标读者</h3>
+
+<p>需要将自有网络接入互联网的公司的网络管理员、集成者、架构师。</p>
+
+<p>不需要太多 TCP/IP 基础。</p>
+
+<h1 id="i-the-contemporary-internet">I: The Contemporary Internet</h1>
+
+<p>路由问题和方案（routing problems and solutions）的复杂性和当代互联网的增长与演进密切相关。</p>
+
+<p>因此，在深入到路由协议细节之前，先了解互联网的发展历史，会对理解问题非常有帮助。</p>
+
+<p><a name="chap_1"></a></p>
+
+<h2 id="1-互联网的演进">1 互联网的演进</h2>
+
+<p>介绍互联网的发展历史，主要组件，理解互联网现在面临的挑战，以及如何构建可扩展互连
+网络（internetworks）。</p>
+
+<p><a name="chap_1.1"></a></p>
+
+<h3 id="11-互联网起源及近史">1.1 互联网：起源及近史</h3>
+
+<h4 id="arpanet">ARPANET</h4>
+
+<p>1969 年 12 月，四个节点、通过 56kbps 电路连接的试验网络 ARPANET。</p>
+
+<p>这项技术大获成功，随后几千个大型和政府机构将他们的私有网络连接到了 ARPANET。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/1-1.PNG" width="60%" height="60%" /></p>
+<p align="center">图 1-1 ARPANET Architecture, December 1969 </p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/1-2.PNG" width="60%" height="60%" /></p>
+<p align="center">图 1-2 ARPANET Architecture, July 1976 </p>
+
+<p>这就是互联网（Internet）的前身。</p>
+
+<p>Internet 被禁止用于商业目的，不过大量的接入还是导致了扩展性和链路拥塞问题，因此
+NSF开始研究 NSFNET。</p>
+
+<h4 id="nsfnet">NSFNET</h4>
+
+<p>NSFNET 是为了解决 ARPANET 的拥塞问题。设计：</p>
+
+<ol>
+  <li>多个区域网络（regional networks）和对等网络（peer networks），</li>
+  <li>骨干网（backbone）：NSFNET 的核心</li>
+  <li>regional networks 和 peer networks 都接入骨干网</li>
+  <li>带宽升级到 T1（1.544 Mbps，1988），后来又到 T3（45 Mbps，1991）</li>
+</ol>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/1-3.PNG" width="60%" height="60%" /></p>
+<p align="center">图 1-3 The NSFNET-Based Internet Environment </p>
+
+<p>1990 年左右，NSFNET 仍然是用于科研和学术目的。之后，开始出现 ISP 产业。</p>
+
+<p>1990 年之后，这张网络开始连接到欧洲和亚洲。</p>
+
+<p>1995 年，这张网络完成了自己的历史使命。</p>
+
+<h4 id="the-internet-today">The Internet Today</h4>
+
+<p>今天的互联网是从一个核心网络（core network，也就是 NSFNET）转变成了一个由商业提
+供商运营的分布式网络，这些供应商网络通过主要的网络交换节点或直连而连接到一起。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/1-4.PNG" width="60%" height="60%" /></p>
+<p align="center">图 1-4 The General Structure of Today's Internet</p>
+
+<p>ISP 在多个 region 都提供连接接入点，称为 POP（Points of Presence）。</p>
+
+<p><a name="chap_2"></a></p>
+
+<h2 id="2-isp-服务和特点">2 ISP 服务和特点</h2>
+
+<p><a name="chap_2.1"></a></p>
+
+<h3 id="21-isp-services">2.1 ISP Services</h3>
+
+<p>For more details about switches, VLANs, and broadcast
+domains, read Interconnections: Bridges, Routers, Switches, and Internetworking
+Protocols,
+Second Edition (Addison-Wesley, 1999) by Radia Perlman, or Cisco LAN Switching
+(Cisco
+Press, 1999) by Kennedy Clark and Kevin Hamilton.</p>
+
+<p><a name="chap_3"></a></p>
+
+<h2 id="3-ip-寻址和分配">3 IP 寻址和分配</h2>
+
+<h3 id="31-history-of-internet-addressing">3.1 History of Internet Addressing</h3>
+
+<h3 id="32-ip-address-space-depletion">3.2 IP Address Space Depletion</h3>
+
+<p>CIDR: Classless Inter-domain Routing</p>
+
+<p>路由条目越多，所需的处理能力和内存空间就更多。</p>
+
+<p>路由表规模在 1991~1995 年每 10 个月就翻一番：</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/3-9.PNG" width="60%" height="60%" /></p>
+<p align="center">图 3-9 The Growth of Internet Routing Tables </p>
+
+<p>CIDR 相比于之前的有类别 IP 地址（classful IP addresses），是革命性的一步。通过
+prefix 做路由聚合，大大减小路由表的规模。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/3-11.PNG" width="60%" height="60%" /></p>
+<p align="center">图 3-11 Classful Addressing Versus CIDR-Based Addressing</p>
+
+<p>路由安装最长前缀匹配算法（LPM）选择路由。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/3-12.PNG" width="60%" height="60%" /></p>
+<p align="center">图 3-12 Longest Match</p>
+
+<p>如图 3-12，如果因为一些原因 path 1 路由失效率，那会用到下一个最长匹配，在图中就
+是 path 2。</p>
+
+<h4 id="将自己聚合的路由指向黑洞">将自己聚合的路由指向黑洞</h4>
+
+<p>每个路由器会对外通告自己聚合的路由，表面自己到这些路由是可达的。</p>
+
+<p>但是，为了避免出现路由环路，每个路由器在自己内部，要将自己聚合的路由指向黑洞，即
+，丢弃所有到这条路由的包。来看个具体的例子。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/3-13.PNG" width="60%" height="60%" /></p>
+<p align="center">图 3-13 Following Less-Specific Routes of a Network's Own Aggregate Causes Loops</p>
+
+<p>ISP1 的配置：</p>
+
+<ol>
+  <li>默认路由指向 ISP2</li>
+  <li>ISP1 到 Foonet 网络 198.32.1.0/24 可达</li>
+  <li>ISP1 经过路由聚合，对外通告自己到 198.32.0.0/13 可达</li>
+</ol>
+
+<p>则，当 ISP1 和 Foonet 的网络发生故障之后，目的是 198.32.1.1 的流量从 ISP2 到达
+ISP1 时，会匹配到默认路由，流量会绕回 ISP2，形成环路。</p>
+
+<p>解决办法是：在 ISP1 的路由表内添加一条到 198.32.0.0/13 的 null 路由，将所有流量
+丢弃。这样网络正常时，流量会匹配 198.32.1.0/24 这条路由；网络异常导致这条路由失
+效后，流量匹配到 198.32.0.0/13，丢弃所有流量。</p>
+
+<h1 id="ii-routing-protocol-basics">II: Routing Protocol Basics</h1>
+
+<p>本书主要介绍外部网关协议（exterior gateway protocols），即不同自治系统（AS）之间
+的路由。但先了解一下内部网关协议（internal gateway protocols）会非常有帮助。</p>
+
+<p><a name="chap_4"></a></p>
+
+<h2 id="4-域间路由基础">4 域间路由基础</h2>
+
+<p>互联网是由自治系统（AS）组成的，这些 AS 由不同组织管理，拥有不同的路由策略。</p>
+
+<p><a name="chap_4.1"></a></p>
+
+<h3 id="41-路由器和路由routers-and-routing">4.1 路由器和路由（Routers and Routing）</h3>
+
+<p>内部网关协议（IGP）是为<strong>企业网</strong>（enterprise）设计的，<strong>不适用于大型网络</strong>，
+例如上千个节点的、有上万条路由的网络。因此引入了外部网关协议（EGP），例如<strong>边界
+网关协议</strong>（BGP）。</p>
+
+<p>本章介绍 IGP 基础。</p>
+
+<h3 id="42-路由协议">4.2 路由协议</h3>
+
+<p>大部分路由协议都可以归为两类分布式路由算法：</p>
+
+<ol>
+  <li>链路-状态（link-state）</li>
+  <li>距离矢量（distance vector）</li>
+</ol>
+
+<h4 id="距离矢量算法">距离矢量算法</h4>
+
+<p>为每条路由维护一个<strong>距离矢量</strong>（vector of distances），其中“距离”用跳数（hops）或类
+似指标衡量。</p>
+
+<p>每个节点独立计算最短路径，因此是分布式算法。</p>
+
+<p>每个节点向邻居通告自己已知的最短路径，邻居根据收到的消息判断是否有更短路径，如果
+有就更新自己的路由信息，然后再次对外通告最短路径。如此反复，直到整个网络收敛到一
+致状态。</p>
+
+<p><strong>早期 IGP 代表</strong>：RIP（Routing Information Protocol）</p>
+
+<p>早期 IGP 缺点：</p>
+
+<ol>
+  <li>早期协议（RIP-1）只计算跳数（相当于每跳权重一样），没有优先级和权重，而跳数最
+少的路径不一定最优</li>
+  <li>早期协议（RIP-1）<strong>规定了最大跳数</strong>（一般是 15），<strong>因此限制了网络的规模</strong>（
+但解决了 count to infinity 问题）</li>
+  <li>早期协议（RIP-1）靠<strong>定时器触发路由通告</strong>（没有事件触发机制），因此路由发生变
+动时，<strong>收敛比较慢</strong></li>
+  <li>第一代协议不支持 CIDR</li>
+</ol>
+
+<p>新 IGP 解决了以上问题，协议代表：</p>
+
+<ol>
+  <li>RIP-2</li>
+  <li>EIGRP</li>
+</ol>
+
+<p><strong>距离矢量协议的优点</strong>：</p>
+
+<ol>
+  <li>简单</li>
+  <li>成熟</li>
+</ol>
+
+<p>BGP 也是距离矢量协议，但它是通过引入路径矢量（path vector）解决 count to
+infinity 问题。path vector 包含了路径上的 ASN，相同 ASN 的路径只会接受一条，因此
+消除了路由环路。BGP 还支持基于域的策略（domain-based policies）。后面会详细介绍
+BGP。</p>
+
+<h4 id="链路状态算法">链路状态算法</h4>
+
+<ul>
+  <li>距离矢量算法：交换路由表信息</li>
+  <li>链路状态算法：交换邻居的链路状态信息，比距离矢量算法复杂</li>
+</ul>
+
+<p>分布式数据库（replicated distributed database），存储链路状态（link state）。</p>
+
+<p>代表：</p>
+
+<ol>
+  <li>OSFP</li>
+  <li>IS-IS</li>
+</ol>
+
+<p><strong>路由可扩展性和收敛速度都有改善，可以支持更大的网络，但仍然只适用于域内路由</strong>（
+interior routing）。</p>
+
+<p>大部分大型服务供应商在域内（intra-domain）都使用 link-state 协议，主要是看中它的
+<strong>快速收敛</strong>特性。</p>
+
+<h3 id="43-将互联网分割为自治系统as">4.3 将互联网分割为自治系统（AS）</h3>
+
+<p><strong>外部路由协议（Exterior routing protocol）的提出是为了解决两个问题</strong>：</p>
+
+<ol>
+  <li><strong>控制路由表的膨胀</strong></li>
+  <li>提供结构化的互联网视图</li>
+</ol>
+
+<p>将路由域划分为独立的管理单元，称为自治系统（autonomous systems，AS）。
+每个 AS 有自己<strong>独立的路由策略</strong>和 <strong>IGP</strong>。</p>
+
+<p>当前域间路由的事实标准：BGP-4。</p>
+
+<blockquote>
+  <p>intra-domain 和 inter-domain routing 的主要区别</p>
+
+  <p>intra-domain 主要解决技术需求，而 inter-domain 主要反映网络和公司的政治与商
+业关系。</p>
+</blockquote>
+
+<h5 id="autonomous-systems">Autonomous Systems</h5>
+
+<p>一个 AS 是拥有如下特点的一组路由器：</p>
+
+<ol>
+  <li>共享相同的路由策略</li>
+  <li>被作为一个整体进行管理</li>
+  <li>通常路由器之间运行同一种 IGP 协议</li>
+</ol>
+
+<p>每个 AS 有一个编号，称为 ASN。AS 之间通过 BGP 交换路由。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/4-2.PNG" width="60%" height="60%" /></p>
+<p align="center">图 4-2 AS 之间的路由交换</p>
+
+<h4 id="三种-as-类型">三种 AS 类型</h4>
+
+<ol>
+  <li>stub AS：末梢 AS，只有一条默认出口，因此不需要同步路由信息</li>
+  <li>non-transient AS：只通告自己的路由，不传播学习到的路由</li>
+  <li>transit AS：既通告自己的路由，又传播学习到的路由</li>
+</ol>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/4-3.PNG" width="60%" height="60%" /></p>
+<p align="center">图 4-3 Single-Homed (Stub) AS</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/4-5.PNG" width="60%" height="60%" /></p>
+<p align="center">图 4-5 Multihomed Nontransit AS Example</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/4-6.PNG" width="60%" height="60%" /></p>
+<p align="center">图 4-6 Multihomed Transit AS Using BGP Internally and Externally</p>
+
+<h3 id="45-frequently-asked-questions">4.5 Frequently Asked Questions</h3>
+
+<h4 id="domain-和-as-有什么区别">Domain 和 AS 有什么区别？</h4>
+
+<p>两者都是指满足某些条件的一组路由器。</p>
+
+<p>Domain 一般指<strong>运行相同路由协议</strong>的一组路由器，例如一个 RIP domain 或一个 OSFP
+domain。</p>
+
+<p>AS 是<strong>管理概念</strong>，<strong>作为整体统一管理的、有相同路由策略</strong>的一组路由器是一个 AS。
+一个 AS 可能包含一个或多个 domain。</p>
+
+<h4 id="bgp-是用于-as-之间的那用于-as-内的-bgp-又是什么">BGP 是用于 AS 之间的。那用于 AS 内的 BGP 又是什么？</h4>
+
+<p>AS 内的 BGP 是 iBGP。</p>
+
+<p>如果 AS 是 transit AS，那 iBGP 可以保护这个 AS 内的 nontransit routers，不会被大
+量的 AS 外路由撑爆路由表。另外，即使不是 transit AS，iBGP 也可以提供更强的控制能
+力，例如本书后面会看到的选择 exit and entrance points。</p>
+
+<p><a name="chap_5"></a></p>
+
+<h2 id="5-边界网关协议第-4-版bgp-4">5 边界网关协议第 4 版（BGP-4）</h2>
+
+<p>BGP-4 1993 年开始部署，是第一个支持路由聚合的 BGP 版本。</p>
+
+<h3 id="51-bgp-工作原理">5.1 BGP 工作原理</h3>
+
+<p>BGP 是一种<strong>路径矢量协议（path vector protocol）</strong>。</p>
+
+<p><strong><em>Path vector</em></strong> 是一条路由（network prefix）经过的所有 AS 组成的路径。目的是防
+止出现<strong>路由环路</strong>。</p>
+
+<ul>
+  <li>BGP 使用 TCP 协议，运行在 179 端口。</li>
+  <li>peer 之间建立连接之后交换全部路由，之后只交换更新的路由（增量更新）</li>
+  <li>交换路由是 UPDATE 消息</li>
+  <li>维护<strong>路由表</strong>的<strong>版本号</strong>，每次路由表有更新，版本号都会递增</li>
+  <li>通告 UPDATE 消息通告和撤回路由</li>
+</ul>
+
+<h4 id="bgp-消息头格式">BGP 消息头格式</h4>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/5-6.PNG" width="60%" height="60%" /></p>
+<p align="center">图 5-6 BGP Message Header Format</p>
+
+<p>字段：</p>
+
+<ol>
+  <li>Marker：16 字节，用于 BGP 消息认证及检测 peer 是否同步</li>
+  <li>Length: 2 字节，BGP 消息总长度，包括 header。总长度在 19~4096 字节之间。</li>
+  <li>Type: 2 字节，四种类型：
+    <ul>
+      <li><code class="highlighter-rouge">OPEN</code></li>
+      <li><code class="highlighter-rouge">UPDATE</code></li>
+      <li><code class="highlighter-rouge">NOTIFICATION</code></li>
+      <li><code class="highlighter-rouge">KEEPALIVE</code></li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="52-bgp-功能协商">5.2 BGP 功能协商</h3>
+
+<p>检测到错误时会发送 NOTIFICATION 消息，然后关闭 peer 连接。</p>
+
+<h4 id="update-message-and-routing-information">UPDATE Message and Routing Information</h4>
+
+<p>UPDATE 消息:</p>
+
+<ul>
+  <li>Network Layer Reachability Information (NLRI)</li>
+  <li>Path Attributes</li>
+  <li>Unfeasible Routes</li>
+</ul>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/5-10.PNG" width="60%" height="60%" /></p>
+<p align="center">图 5-10 BGP UPDATE Message</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/5-11.PNG" width="60%" height="60%" /></p>
+<p align="center">图 5-11 BGP Routing Update Example</p>
+
+<h3 id="53-multiprotocol-extensions-for-bgp">5.3 Multiprotocol Extensions for BGP</h3>
+
+<p>对 BGP-4 的兼容性扩展，支持除了 IPv4 之外的其他协议（所以叫多协议），例如 IPv6
+等等。</p>
+
+<h3 id="54-tcp-md5-signature-option">5.4 TCP MD5 Signature Option</h3>
+
+<h3 id="55-looking-ahead">5.5 Looking Ahead</h3>
+
+<h3 id="56-frequently-asked-questions">5.6 Frequently Asked Questions</h3>
+
+<h4 id="bgp-是否像-rip-一样定期发布路由更新消息">BGP 是否像 RIP 一样定期发布路由更新消息？</h4>
+
+<p>不是。只有路由有变动时，才会通告，而且只通告变动的路由。</p>
+
+<h4 id="asn-在-bgp-消息中的什么地方">ASN 在 BGP 消息中的什么地方？</h4>
+
+<p>UPDATE 消息的 AS_PATH 属性中。</p>
+
+<h1 id="iii-effective-internet-routing-designs">III: Effective Internet Routing Designs</h1>
+
+<p>接下来用前面学到的知识解决实际问题。</p>
+
+<p><a name="chap_6"></a></p>
+
+<h2 id="6-bgp-capabilities-调优">6 BGP Capabilities 调优</h2>
+
+<p>从本章开始，内容从理论转向 BGP 实现。</p>
+
+<h3 id="61-building-peer-sessions">6.1 Building Peer Sessions</h3>
+
+<p>虽然 BGP 大部分情况都是用于 AS 之间，但是，它也可以用在 AS 内部，为 AS 内部的路
+由器提供外部路由可达信息（external destination reachability information）。</p>
+
+<p>AS 内部的 BGP 称为 iBGP；AS 之间的 BGP 称为 eBGP。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/6-1.PNG" width="60%" height="60%" /></p>
+<p align="center">图 6-1 iBGP 和 eBGP</p>
+
+<p>邻居之间建立连接，然后通过 OPEN 消息进行协商，在这个过程中，peer routers 之间会
+比较 ASN 来判断他们是否属于同一个 AS。</p>
+
+<p>iBGP 和 eBGP 的区别：</p>
+
+<ol>
+  <li>对收到的 UPDATE 消息的处理不同</li>
+  <li>消息携带的属性不同</li>
+</ol>
+
+<h4 id="物理和逻辑连接">物理和逻辑连接</h4>
+
+<p>eBGP 要求邻居之间必须是物理直连的，但是有些情况下两个 AS 之间的 BGP peer 无法满
+足直连的要求，例如经过了一些非 GBP 路由器。这种情况下，需要对 BGP 做特殊配置。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/6-2.PNG" width="60%" height="60%" /></p>
+<p align="center">图 6-2 External BGP Multihop Environment</p>
+
+<p>iBGP 对于 peer 之间是否直连没有要求，只要 peer 之间 IP 通即可。</p>
+
+<h4 id="synchronization-within-an-as">Synchronization Within an AS</h4>
+
+<p>BGP 的默认行为是，只有 iBGP 收敛之后，才将 AS 内部的路由通告给其他 AS。</p>
+
+<p>否则，会出现问题。来看个例子。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/6-4.PNG" width="60%" height="60%" /></p>
+<p align="center">图 6-4 BGP Route Synchronization</p>
+
+<p>ISP3 里面只有 RTA 和 RTC 运行 BGP 协议。当 ISP1 将 192.213.1.0/24 通告给 ISP3 的
+RTA 之后，RTA 进一步将消息通告给 RTC。RTC 再通告给 ISP2。当 ISP2 向这个路由发送
+流量时，RTC 会将流量转发给 RTB，而 RTB 没有这个路由信息，会将流量丢弃。</p>
+
+<p>因此，BGP 规定，从 iBGP 邻居学习到的路由不应该通告给其他 AS，除非这条路由通告IGP
+也能访问到（The BGP rule states that a BGP router should not advertise to
+external neighbors destinations learned from IBGP neighbors unless those
+destinations are also known via an IGP.）。这就是所谓的同步。如果 IGP 可达，那说
+明这条路由在 AS 内部是可达的。</p>
+
+<p><strong>将 BGP 路由注入 IGP 路由是有代价的。</strong></p>
+
+<p>首先，这会<strong>给 IGP 节点带来额外的计算开销</strong>。前面已经提到，IGP 并不是为处理大规
+模路由设计的（IGPs are not designed to handle that many routes）。</p>
+
+<p>其次，<strong>没有必要将所有外部路由都同步到所有内部节点</strong>。更简单的方式通常是，AS 内
+分成non-BGP 路由器和 BGP 路由器，non-BGP 路由器的默认路由指向 BGP 路由器。这样可
+能会导致路径并不是最优的，但是跟在 AS 内维护上千条外部路由相比，代价要小的多。</p>
+
+<p>除了 BGP+IGP 方式之外，解决这个问题的另一个办法是，AS 内部的非边界路由器之间做
+iBGP full-mesh，这样路由可以<strong>通过 iBGP 保证同步</strong>。向 IGP 内部插入成千上万条路
+由太恐怖了。</p>
+
+<p>因此，一些 BGP 的实现里允许关掉同步，例如 Cisco 的 <code class="highlighter-rouge">no synchronization</code> 命令，这
+是当前的常见配置（disable BGP synchronization and rely on a full mesh of IBGP
+routers）。</p>
+
+<h3 id="62-路由更新方式">6.2 路由更新方式</h3>
+
+<p>对于像互联网这样复杂的网络来说，<strong>路由稳定性</strong>（route stability）是一个很大的问题。
+这和链路的稳定性，以及路由的注入方式（动态/静态）有关系。</p>
+
+<h4 id="bgp-动态注入">BGP 动态注入</h4>
+
+<p>可以进一步分为：</p>
+
+<ul>
+  <li>纯动态注入：所有从 IGP 学习到的路由都注入到 BGP（通过 <code class="highlighter-rouge">redistribute</code> 命令）</li>
+  <li>半动态注入：部分从 IGP 学习到的路由注入到 BGP（通过 <code class="highlighter-rouge">network</code> 命令）</li>
+</ul>
+
+<p>动态注入：</p>
+
+<ul>
+  <li>优点
+    <ul>
+      <li>配置简单，IGP 路由自动注入 BGP，不管是具体哪种 IGP 类型（RIP、OSPF、IS-IS等等）</li>
+    </ul>
+  </li>
+  <li>缺点
+    <ul>
+      <li>可能会泄露内网路由到公网，造成安全问题</li>
+      <li>IGP 路由抖动会影响到 BGP，想象一下几百个 AS 同时有 IGP 路由抖动给 BGP 造成
+的影响</li>
+    </ul>
+  </li>
+</ul>
+
+<p>为了防止因特网的路由抖动，提出了一些技术，第十章会介绍到，一个叫 route dampening
+的进程会对抖动的路由进行惩罚，抑制它进入 BGP 的时间。</p>
+
+<p>保证路由稳定性是一项很难的工作，因为很多因素都是不受控的，例如硬件故障。减少路由
+不稳定的一种方式是路由聚合，可以在 AS 边界做，也可以在因特网边界做。</p>
+
+<p>最后，另一种解决路由不稳定的方式是静态注入路由。</p>
+
+<h4 id="bgp-静态注入">BGP 静态注入</h4>
+
+<p>静态注入的路由会一直存在于路由表，一直会被通告。</p>
+
+<p>可以解决路由不稳定的问题，但是会导致失效的路由无法自动从路由表删除，而且静态配置
+相当繁琐，配置不当还容易产生环路。因此只在特定的场景下使用。</p>
+
+<h4 id="静态路由和动态路由例子移动网络">静态路由和动态路由例子：移动网络</h4>
+
+<p>移动网络中分配 IP 地址的问题。</p>
+
+<p>移动设备希望在从一个 AS 移动到另一个 AS 的过程中，需要切换 IP 地址。因此，静态路
+由的方式不合适，只能通过动态注入 BGP 的方式。具体到实现，一种方式就是将 IGP 注入
+BGP。这会带来一些问题，前面已经分析过，例如需要对路由做过滤。</p>
+
+<p>另一种实现方式是通过 <code class="highlighter-rouge">network</code> 命令，在所有位置的边界路由器定义这些网络。</p>
+
+<h3 id="63-重叠的协议后门overlapping-protocols-backdoors">6.3 重叠的协议：后门（Overlapping Protocols: Backdoors）</h3>
+
+<p>路由可以通过多种协议学习，选择不同的协议会影响流量的路径。例如，如果选择一条 RIP
+路由，可能会走某链路；而选择一条 eBGP 路由，则可能会走另一条链路。</p>
+
+<p>后门链路（backdoor link）提供了一种 IGP 路径的备选方式，可以用来替代 eBGP 路径。
+可以通过后门链路到达的 IGP 路由称作后门路由。</p>
+
+<p>有了这种后门路由，就需要一种机制，能够使得一种协议的优先级比另一种更高。例如，
+Cisco 提供的 <strong><em>administrative distance</em></strong> 就是这个功能。</p>
+
+<p>通过设置不同协议的路由的优先级，使得后门路由被选中作为最优路由。
+或者，前面介绍过，通过 <code class="highlighter-rouge">distance</code> BGP 命令也可以设置优先级。</p>
+
+<h3 id="64-bgp-路由过程">6.4 BGP 路由过程</h3>
+
+<p>简要查看完整的 BGP 路由处理过程。</p>
+
+<p>BGP 是一种相当简单的协议，这也是它灵活的原因。BGP peer 之间通过 UPDATE 消息交换
+路由。BGP 路由器收到 UPDATE 消息后，运行一些策略或者对消息进行过滤，然后将路由转
+发给其他 BGP peers。</p>
+
+<p>BGP 实现需要维护一张 BGP 路由表，这张表是和 IP 路由表独立的。如果到同一目的地有
+多条路由，BGP 并不会将所有这些路由都转发给 peer；而是选出最优路由，然后将最优路
+由转发给 peer。除了传递从 peer 来的 eBGP 路由，或从路由反射器客户端（RR client）
+来的 iBGP 路由之外，BGP 路由器还可以主动发起路由更新，通告它所在 AS 内的内部网络。</p>
+
+<p>来源是本 AS 的合法的本地路由，以及从 BGP peer 学习到的最优路由，会被添加到 IP 路
+由表。IP 路由表是最终的路由决策表，用于操控转发表。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/6-8.PNG" width="60%" height="60%" /></p>
+<p align="center">图 6-8 Routing Process Overview</p>
+
+<h4 id="bgp-路由通告和存储">BGP 路由：通告和存储</h4>
+
+<p>根据 RFC 1771，BGP 协议中路由（route）的定义是：一条路由是<strong>一个目标及其到达这个目
+标的一条路径的属性</strong>组成的信息单元（a route is defined as a unit of information that pairs a destination with the attributes of a path to that destination）。</p>
+
+<p>路由在 BGP peer 之间通过 UPDATE 消息进行通告：目标是 NLRI 字段，路径是 path 属性
+字段。</p>
+
+<p>路由存储在 RIB（Routing Information Bases）。</p>
+
+<p>BGP speaker 选择通告一条路由的时候，可能会修改路由的 path 属性。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/6-9.PNG" width="60%" height="60%" /></p>
+<p align="center">图 6-9 BGP 路由表的逻辑表示</p>
+
+<ul>
+  <li>一个 Adj-RIB-In 逻辑上对应一个 peer，存储从 peer 学习到的路由</li>
+  <li>Loc-RIB 存储最优路由</li>
+  <li>一个 Adj-RIB-Out 逻辑上对应一个 peer，存储准备从这个路由器发送给对应 peer 的路由</li>
+</ul>
+
+<p>这里的逻辑图是将过程分成了三部分，每部分都有自己的存储，但实现不一定这样，事实上
+大部分实现都是共享一份路由表，以节省内存。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/6-10.PNG" width="60%" height="60%" /></p>
+<p align="center">图 6-10 Sample Routing Environment</p>
+
+<h4 id="bgp-决策过程总结">BGP 决策过程总结</h4>
+
+<ol>
+  <li>如果下一跳不可达，则忽略此路由（这就是为什么有一条 IGP 路由作为下一跳如此重要
+的原因）</li>
+  <li>选择权重最大的一条路径</li>
+  <li>如果权重相同，选择本地偏向（local preference）最大的一条路由</li>
+  <li>如果没有源自本地的路由（locally originated routes），并且 local preference 相
+同，则选择 AS_PATH 最短的路由</li>
+  <li>如果 AS_PATH 相同，选择 origin type 最低（<code class="highlighter-rouge">IGP &lt; EGP &lt; INCOMPLETE</code>）的路由</li>
+  <li>如果 origin type 相同，选择 MED 最低的，如果这些路由都是从同一个 AS 收到的</li>
+  <li>如果 MED 相同，优先选择 eBGP（相比于 iBGP）</li>
+  <li>如果前面所有条件都相同，选择经过最近的 IGP 邻居的路由——也就是选择 AS 内部最短
+的到达目的的路径</li>
+  <li>如果内部路径也相同，那就依靠 BGP ROUTE_ID 来选择了。选择从 RID 最小的 BGP 路
+由器来的路由。对 Cisco 路由器来说，RID 就是路由器的 loopback 地址。</li>
+</ol>
+
+<h3 id="65-controlling-bgp-routes">6.5 Controlling BGP Routes</h3>
+
+<p>介绍路由的每个属性。</p>
+
+<h4 id="origintype-code-1">ORIGIN（type code 1)</h4>
+
+<ul>
+  <li>0: <code class="highlighter-rouge">IGP</code>, NLRI that is inteior to the originating AS</li>
+  <li>1: <code class="highlighter-rouge">EGP</code>, NLRI learned via EGP</li>
+  <li>2: <code class="highlighter-rouge">INCOMPLETE</code>, NLRI learned by some means</li>
+</ul>
+
+<h4 id="as_path">AS_PATH</h4>
+
+<p>BGP 依靠这个字段实现路由无环路。里面存储了路径上的 ASN。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/6-11.PNG" width="60%" height="60%" /></p>
+<p align="center">图 6-11 Sample Loop Condition Addressed by the AS_PATH Attribute</p>
+
+<h4 id="next_hop">NEXT_HOP</h4>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/6-12.PNG" width="60%" height="60%" /></p>
+<p align="center">图 6-12 BGP NEXT_HOP Example</p>
+
+<h3 id="66-route-filtering-and-attribute-manipulation">6.6 Route Filtering and Attribute Manipulation</h3>
+
+<h3 id="67-bgp-4-aggregation">6.7 BGP-4 Aggregation</h3>
+
+<h3 id="68-looking-ahead">6.8 Looking Ahead</h3>
+
+<h3 id="69-frequently-asked-questions">6.9 Frequently Asked Questions</h3>
+
+<h4 id="是否应该将-bgp-路由注入-igp">是否应该将 BGP 路由注入 IGP？</h4>
+
+<p>不。不推荐将 BGP 路由注入 IGP。应该关闭 BGP synchronization。</p>
+
+<h3 id="61-references">6.1 References</h3>
+
+<p><a name="chap_7"></a></p>
+
+<h2 id="7-冗余对称和负载均衡">7 冗余、对称和负载均衡</h2>
+
+<ul>
+  <li>冗余：发生链路故障时，有备用路由</li>
+  <li>对称：流量在相同的点进出 AS（enters and exits an AS at the same point）</li>
+  <li>负载均衡：在多条链路之间均衡地分发流量</li>
+</ul>
+
+<h3 id="71-冗余">7.1 冗余</h3>
+
+<p>冗余和对称这两个目标是有冲突的：<strong>一个网络提供的冗余越多，它的对称性越难保证</strong>。</p>
+
+<p><strong>冗余最终会以路由的形式落到路由表</strong>。为了避免路由表过于复杂，通常的冗余实现方式
+就是默认路由（default routing）。</p>
+
+<h4 id="设置默认路由">设置默认路由</h4>
+
+<p>默认路由是<strong>优先级最低的路由</strong>，因此是最后的选择（gateway of the last resort）。分为两种：</p>
+
+<ul>
+  <li>动态学习</li>
+  <li>静态配置</li>
+</ul>
+
+<h5 id="动态学习默认路由">动态学习默认路由</h5>
+
+<p>0.0.0.0/0.0.0.0 是全网约定的默认路由，并且可以动态通告给其他路由器。通告此路由的
+系统表示它可以<strong>作为其他系统最后尝试的网关</strong>（represents itself as a gateway of
+last resort for other systems）。</p>
+
+<p>动态默认路由可以通过 BGP 或 IGP 学习。出于冗余目的，应该设置允许从多个源学习默认
+路由。在 BGP 中，可以通过设置 <code class="highlighter-rouge">local reference</code> 给默认路由设置优先级。如果高优先
+级的默认路由发生故障，低优先级的可以补上。</p>
+
+<h5 id="静态配置默认路由">静态配置默认路由</h5>
+
+<p>动态学习到的默认路由可能不是我们想要的，因此一些管理员会选择静态配置默认路由。</p>
+
+<p>静态默认路由也可以设置多条，用优先级区分。</p>
+
+<h3 id="72-对称">7.2 对称</h3>
+
+<p>流量从 AS 的哪个点出去的，也通过哪个点进来。</p>
+
+<p>大部分情况下都应该是对称的，但是特定的一些场景下也会有非对称的情况，与设计有关。</p>
+
+<blockquote>
+  <p>实际上非对称路由在现实中并不少见（more often than not），而且也没有造成太大问
+题。</p>
+</blockquote>
+
+<h3 id="73-非对称路由">7.3 非对称路由</h3>
+
+<p>流量要根据 inbound 和 outbound 分开考虑。
+例如，如果网络和 ISP1 之间的带宽被打爆了，那你肯定是先问：是 inbound 还是
+outbound 被打爆了？</p>
+
+<p>路由行为影响因素：</p>
+
+<ul>
+  <li><code class="highlighter-rouge">inbound traffic</code> 受<strong>本 AS 通告出去的路由</strong>的影响</li>
+  <li><code class="highlighter-rouge">outbound traffic</code> 受<strong>本 AS 从其他 AS 学习到的路由</strong>的影响</li>
+</ul>
+
+<p>因此，要调整 inbound 流量，就需要调整从本 AS 通告出去的路由；而要调整 outbound，
+就需要控制本 AS 如何学习邻居通告的路由。</p>
+
+<h3 id="74-不同场景下对三者的权衡">7.4 不同场景下对三者的权衡</h3>
+
+<p>可以看出，冗余、对称和负载均衡之间是有联系的，并且存在一些冲突。</p>
+
+<p>第六章介绍的路由属性（routing attributes）是实现这三个目标的工具。</p>
+
+<h3 id="75-looking-ahead">7.5 Looking Ahead</h3>
+
+<h3 id="76-frequently-asked-questions">7.6 Frequently Asked Questions</h3>
+
+<p><strong>BGP 本身不考虑链路速度和流量特性</strong>，因此需要管理员通过策略配置达到所期望的目的。</p>
+
+<p><a name="chap_8"></a></p>
+
+<h2 id="8-as-内部路由控制">8 AS 内部路由控制</h2>
+
+<h3 id="81-非-bgp-路由器和-bgp-路由器的交互">8.1 非 BGP 路由器和 BGP 路由器的交互</h3>
+
+<p>非 BGP 路由器如何连接到外部网络：</p>
+
+<ol>
+  <li>将 BGP 注入到 IGP（即，将外部路由注入到 AS 内部）</li>
+  <li>静态配置 AS 内的默认路由到外网</li>
+</ol>
+
+<h4 id="811-bgp-注入-igp">8.1.1 BGP 注入 IGP</h4>
+
+<p><strong>不推荐将全部 BGP 路由注入到 IGP</strong>，这会给 IGP 路由增加很大的负担。IGP 路由是针
+对AS 内路由和很小的网络设计的，不适用于大规模网络。但可以将部分 BGP 路由注入 IGP。</p>
+
+<p>需要考虑的因素：</p>
+
+<ol>
+  <li>计算路径和处理路由更新所需的内存、CPU</li>
+  <li>link utilization from routing control traffic</li>
+  <li>对收敛的影响</li>
+  <li>IGP 的限制</li>
+  <li>网络拓扑</li>
+  <li>其他</li>
+</ol>
+
+<p>缺点：</p>
+
+<ol>
+  <li>如果 IGP 非常老，例如 RIP-1，不支持 CIDR，那 BGP 过来的 CIDR 路由都会丢失</li>
+  <li>BGP 路由的抖动会引起 IGP 的抖动，很多 IGP 挂掉都是这个原因</li>
+</ol>
+
+<h4 id="812-静态配置默认路由">8.1.2 静态配置默认路由</h4>
+
+<p>在每个 AS 的边界路由器上添加一条默认路由。</p>
+
+<h3 id="82-bgp-policies-conflicting-with-internal-defaults">8.2 BGP Policies Conflicting with Internal Defaults</h3>
+
+<p><strong>BGP 路由策略和 IGP 的默认行为有冲突会导致出现路由环路</strong>，来看 图 8-2 这个例子
+。</p>
+
+<h4 id="821-例子主备-bgp-策略和-igp-默认行为冲突导致环路">8.2.1 例子：主备 BGP 策略和 IGP 默认行为冲突导致环路</h4>
+
+<p>考虑图 8-2。RTC 和 RTD 和外面的 AS 运行 eBGP；在 AS 内部，它们两个之间运行 iBGP
+。但是，他们不是直连的，要经过 RTA 和 RTB 两个非 BGP 路由器。RTA 和 RTB 会和 AS
+内的所有路由器运行 IGP 协议，因此它们看不到所有的外部路由（BGP 路由）。</p>
+
+<p>如果 BGP 策略是 RTD 做主，RTC 做备，那 RTC 收到流量时，会转发给 RTD，但因为 RTC
+和 RTD 不是直连的，因此它会先转发给 RTA。RTA 根据 IGP 学习到的默认路由是 RTC，因
+此它又会将流量转发回 RTC，形成了路由环路。</p>
+
+<p>RTC 和 RTD 之间出现环路：</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/8-2.PNG" width="60%" height="60%" /></p>
+<p align="center">图 8-2 Following Defaults: Loop Situation</p>
+
+<p>解决这个问题的办法有如下几种。</p>
+
+<h5 id="方案-1-修改-igp-metric">方案 1: 修改 IGP Metric</h5>
+
+<p><strong>将 RTA 的默认路由从指向 RTC 改为指向 RTD</strong>。</p>
+
+<p>具体地，将 RTC 的默认路由 0/0 的 metric 设置的非常大。这样 RTD 的路径相比之下很
+短，RTA就会将 RTA-RTB-RTD 作为最优路径。</p>
+
+<h5 id="方案-2-直连-rtc-和-rtd">方案 2: 直连 RTC 和 RTD</h5>
+
+<p><strong>直连 RTC 和 RTD，使得二者之间的最优路径不需要经过 RTA。</strong></p>
+
+<p>RTC-RTD 是 iBGP 路径，RTC-RTA-RTB-RTD 是 IGP 路径。</p>
+
+<h5 id="方案-3-transit-routers-都跑-bgp">方案 3: Transit Routers 都跑 BGP</h5>
+
+<p>Transit routers 都跑 BGP，在图 8-2 中就是 RTA 和 RTB。</p>
+
+<h5 id="方案-4-控制默认路由自动注入">方案 4: 控制默认路由自动注入</h5>
+
+<p>RTD 和 RTC 只有一个注入默认路由，另一个不注入。</p>
+
+<p>缺点：在对 primary/backup 模式有用，而且 primary 挂掉之后，backup 用不了，因为它
+没有注入默认路由。</p>
+
+<h4 id="822-defaults-inside-the-as-other-bgp-policies">8.2.2 Defaults Inside the AS: Other BGP Policies</h4>
+
+<p>IGP 默认配置和 BGP policy 冲突产生的环路。</p>
+
+<h3 id="83-策略路由policy-routing">8.3 策略路由（Policy Routing）</h3>
+
+<p>通常所说的路由，都是根据<strong>目的地址</strong>做转发。</p>
+
+<p>而策略路由是根据<strong>源地址</strong>，或<strong>源地址+目的地址</strong>做转发。可以做更高级的路由控制。</p>
+
+<h3 id="84-looking-ahead">8.4 Looking Ahead</h3>
+
+<h3 id="85-frequently-asked-questions">8.5 Frequently Asked Questions</h3>
+
+<p><a name="chap_9"></a></p>
+
+<h2 id="9-大型-as-控制管理">9 大型 AS 控制管理</h2>
+
+<p>网络节点超过几百个之后，会带来很大的管理问题。</p>
+
+<h2 id="91-路由反射器route-reflectors">9.1 路由反射器（Route Reflectors）</h2>
+
+<p>BGP 之间通过 full-mesh 做 peering，当节点多了之后，BGP mesh 非常复杂。</p>
+
+<p>引入路由反射器（Route Reflector，RR）。RR 带来的好处：</p>
+
+<ol>
+  <li>向多个 peer 发送 UPDATE 时效率更高</li>
+  <li>路由器只需要和 local RR 做 peer，大大减少 BGP session 的数量</li>
+</ol>
+
+<p>只有 BGP mesh 比较大之后才推荐 RR。因为 <strong>RR 也是有代价的</strong>：</p>
+
+<ol>
+  <li>增加额外计算开销</li>
+  <li>如果配置不正常会引起路由环路和路由不稳定</li>
+</ol>
+
+<h4 id="911-没有-rr-的拓扑full-mesh">9.1.1 没有 RR 的拓扑：full-mesh</h4>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/9-1.PNG" width="60%" height="60%" /></p>
+<p align="center">图 9-1 Internal Peers in a Normal Full-Mesh Environment</p>
+
+<p>没有 RR 的情况下，同一 AS 内的 BGP speaker 之间形成一个 <strong>logical</strong> full-mesh。
+如图9-1 所示，虽然 RTA-RTC 之间没有物理链路，但仍然有一条逻辑 peer 链路。</p>
+
+<p><strong>RTB 从 RTA 收到的 UPDATE 消息并不会发送给 RTC</strong>，因为：</p>
+
+<ol>
+  <li>RTC 是内部节点（同一个 AS）</li>
+  <li>这条 UPDATE 消息也是从内部节点发来的（RTA）</li>
+</ol>
+
+<p>因此，如果 RTA-RTC 之间没有做 peer，RTC 就收不到 RTA 的消息；所以没有 RR 的情况
+下必须得用 full-mesh。</p>
+
+<h4 id="912-有-rr-的拓扑">9.1.2 有 RR 的拓扑</h4>
+
+<p>再来看有 RR 的情况，如图 9-2 所示。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/9-2.PNG" width="60%" height="60%" /></p>
+<p align="center">图 9-2 Internal Peers Using a Route Reflector</p>
+
+<p>引入 RR 之后，其他路由器称为客户端。客户端和 RR 之间做 peer，RR 再将消息转发给其
+他 IBGP 或 eBGP peers。</p>
+
+<p>RR 大大减少了 BGP session 数量，使得网络更具扩展性。</p>
+
+<h4 id="913-路由反射原则">9.1.3 路由反射原则</h4>
+
+<p>所有设备分为三类：</p>
+
+<ol>
+  <li>路由反射器</li>
+  <li>路由反射器的客户端，简称客户端</li>
+  <li>非路由反射器的客户端，简称非客户端</li>
+</ol>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/9-3.PNG" width="60%" height="60%" /></p>
+<p align="center">图 9-3 Route Reflection Process Components</p>
+
+<p><strong>路由反射原则</strong>：</p>
+
+<ol>
+  <li>从 nonclient peer 来的路由，只反射给 clients（无须反射给 nonclients 是因为
+nonclients 之间有 full-mesh）</li>
+  <li>从 client peer 来的路由，反射给 clients 及 nonclients</li>
+  <li>从 eBGP peer 来的路由，反射给 clients 及 nonclients</li>
+</ol>
+
+<p>RR 只用于 AS 内部，因此 AS 边界的外部路由节点（eBGP）也当作 nonclients 对待。</p>
+
+<h4 id="914-rr-高可用">9.1.4 RR 高可用</h4>
+
+<p>RR 是集中式节点，因此非常重要，需要做冗余。</p>
+
+<p>但是，如果本身物理拓扑就没有冗余，那 RR 做冗余也是无用的，如下图。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/9-4.PNG" width="60%" height="60%" /></p>
+<p align="center">图 9-4 Comparison of Logical and Physical Redundancy Solutions</p>
+
+<h4 id="915-rr-拓扑">9.1.5 RR 拓扑</h4>
+
+<p>RR 拓扑主要取决于物理网络拓扑，事实上每个路由器都可以配置成 RR。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/9-5.PNG" width="60%" height="60%" /></p>
+<p align="center">图 9-5 Complex Multiple Route Reflector Environment</p>
+
+<p><strong>RR 不会修改路由消息的属性</strong>（UPDATE attributes，例如 NEXT_HOP），但是一些实现
+会允许 RR 做一些过滤工作。</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/9-7.PNG" width="60%" height="60%" /></p>
+<p align="center">图 9-7 Typical BGP Route Reflection Topology</p>
+
+<p align="center"><img src="/assets/img/internet-routing-arch/9-8.PNG" width="60%" height="60%" /></p>
+<p align="center">图 9-8 Full-Mesh BGP Topology</p>
+
+<p><a name="chap_10"></a></p>
+
+<h2 id="10-设计稳定的因特网">10 设计稳定的因特网</h2>
+
+<h3 id="101-因特网路由的不稳定性">10.1 因特网路由的不稳定性</h3>
+
+<p>最常见的现象：路由抖动（flapping），BGP 频繁 UPDATE 和 WITHDRAWN 路由。</p>
+
+<p>一些影响因特网路由稳定性的因素：</p>
+
+<ol>
+  <li>IGP 不稳定</li>
+  <li>硬件错误</li>
+  <li>软件问题</li>
+  <li>CPU、内存等资源不足</li>
+  <li>网络升级和例行维护</li>
+  <li>人为错误</li>
+  <li>链路拥塞</li>
+</ol>
+
+<h3 id="102-bgp-stability-features">10.2 BGP Stability Features</h3>
+
+<h1 id="iv-internet-routing-device-configuration">IV: Internet Routing Device Configuration</h1>
+
+
+  <!-- POST NAVIGATION -->
+  <div class="postNav clearfix">
+     
+      <a class="prev" href="/blog/bgp-in-data-center-zh/"><span>&laquo;&nbsp;[笔记] BGP in the Data Center (O'Reilly 2017)</span>
+      
+    </a>
+      
+      
+      <a class="next" href="/blog/how-to-make-linux-microservice-aware-with-cilium-zh/"><span>[译] 如何基于 Cilium 和 eBPF 打造可感知微服务的 Linux&nbsp;&raquo;</span>
+       
+      </a>
+     
+  </div>
+</div>
+
+
+         
+
+      </div>
+   </div><!-- end .content -->
+
+   <div class="footer">
+   <div class="container">
+      <p class="copy">&copy; 2016-2019
+      <a href="https://arthurchiao.github.io">Arthur Chiao</a>, Powered by
+      <a href="http://jekyllrb.com">Jekyll </a>, Theme originated from
+      <a href="https://github.com/brianmaierjr/long-haul"> Long Haul.</a>
+
+      <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+      <span id="busuanzi_container_site_pv"> Site visits:
+          <span id="busuanzi_value_site_pv"></span>, powered by<a href="http://busuanzi.ibruce.info/"> busuanzi</a>
+      </span>
+
+      </p>
+
+      <div class="footer-links"> 
+         <ul class="noList"> 
+            
+            <li><a href="https://www.facebook.com/profile.php?id=100014334455077">
+                  <svg id="facebook-square" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M82.667,1H17.335C8.351,1,1,8.351,1,17.336v65.329c0,8.99,7.351,16.335,16.334,16.335h65.332 C91.652,99.001,99,91.655,99,82.665V17.337C99,8.353,91.652,1.001,82.667,1L82.667,1z M84.318,50H68.375v42.875H50V50h-8.855V35.973 H50v-9.11c0-12.378,5.339-19.739,19.894-19.739h16.772V22.3H72.967c-4.066-0.007-4.57,2.12-4.57,6.078l-0.023,7.594H86.75 l-2.431,14.027V50z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://linkedin.com/in/yanan-zhao-7691317b?trk=hp-identity-photo">
+                  <svg id="linkedin" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M99.001,19.428c-3.606,1.608-7.48,2.695-11.547,3.184c4.15-2.503,7.338-6.466,8.841-11.189 c-3.885,2.318-8.187,4-12.768,4.908c-3.667-3.931-8.893-6.387-14.676-6.387c-11.104,0-20.107,9.054-20.107,20.223 c0,1.585,0.177,3.128,0.52,4.609c-16.71-0.845-31.525-8.895-41.442-21.131C6.092,16.633,5.1,20.107,5.1,23.813 c0,7.017,3.55,13.208,8.945,16.834c-3.296-0.104-6.397-1.014-9.106-2.529c-0.002,0.085-0.002,0.17-0.002,0.255 c0,9.799,6.931,17.972,16.129,19.831c-1.688,0.463-3.463,0.71-5.297,0.71c-1.296,0-2.555-0.127-3.783-0.363 c2.559,8.034,9.984,13.882,18.782,14.045c-6.881,5.424-15.551,8.657-24.971,8.657c-1.623,0-3.223-0.096-4.796-0.282 c8.898,5.738,19.467,9.087,30.82,9.087c36.982,0,57.206-30.817,57.206-57.543c0-0.877-0.02-1.748-0.059-2.617 C92.896,27.045,96.305,23.482,99.001,19.428z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://github.com/ArthurChiao">
+                  <svg id="github" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M79.099,79.099 c-3.782,3.782-8.184,6.75-13.083,8.823c-1.245,0.526-2.509,0.989-3.79,1.387v-7.344c0-3.86-1.324-6.699-3.972-8.517 c1.659-0.16,3.182-0.383,4.57-0.67c1.388-0.287,2.855-0.702,4.402-1.245c1.547-0.543,2.935-1.189,4.163-1.938 c1.228-0.75,2.409-1.723,3.541-2.919s2.082-2.552,2.847-4.067s1.372-3.334,1.818-5.455c0.446-2.121,0.67-4.458,0.67-7.01 c0-4.945-1.611-9.155-4.833-12.633c1.467-3.828,1.308-7.991-0.478-12.489l-1.197-0.143c-0.829-0.096-2.321,0.255-4.474,1.053 c-2.153,0.798-4.57,2.105-7.249,3.924c-3.797-1.053-7.736-1.579-11.82-1.579c-4.115,0-8.039,0.526-11.772,1.579 c-1.69-1.149-3.294-2.097-4.809-2.847c-1.515-0.75-2.727-1.26-3.637-1.532c-0.909-0.271-1.754-0.439-2.536-0.503 c-0.782-0.064-1.284-0.079-1.507-0.048c-0.223,0.031-0.383,0.064-0.478,0.096c-1.787,4.53-1.946,8.694-0.478,12.489 c-3.222,3.477-4.833,7.688-4.833,12.633c0,2.552,0.223,4.889,0.67,7.01c0.447,2.121,1.053,3.94,1.818,5.455 c0.765,1.515,1.715,2.871,2.847,4.067s2.313,2.169,3.541,2.919c1.228,0.751,2.616,1.396,4.163,1.938 c1.547,0.543,3.014,0.957,4.402,1.245c1.388,0.287,2.911,0.511,4.57,0.67c-2.616,1.787-3.924,4.626-3.924,8.517v7.487 c-1.445-0.43-2.869-0.938-4.268-1.53c-4.899-2.073-9.301-5.041-13.083-8.823c-3.782-3.782-6.75-8.184-8.823-13.083 C9.934,60.948,8.847,55.56,8.847,50s1.087-10.948,3.231-16.016c2.073-4.899,5.041-9.301,8.823-13.083s8.184-6.75,13.083-8.823 C39.052,9.934,44.44,8.847,50,8.847s10.948,1.087,16.016,3.231c4.9,2.073,9.301,5.041,13.083,8.823 c3.782,3.782,6.75,8.184,8.823,13.083c2.143,5.069,3.23,10.457,3.23,16.016s-1.087,10.948-3.231,16.016 C85.848,70.915,82.88,75.317,79.099,79.099L79.099,79.099z"></path>
+                  </svg>
+            </a></li>
+             
+            
+            <li><a href="mailto:arthurchiao@hotmail.com">
+                  <svg id="mail" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M25.5,25.5h49 c0.874,0,1.723,0.188,2.502,0.542L50,57.544L22.998,26.041C23.777,25.687,24.626,25.499,25.5,25.5L25.5,25.5z M19.375,68.375v-36.75 c0-0.128,0.005-0.256,0.014-0.383l17.96,20.953L19.587,69.958C19.448,69.447,19.376,68.916,19.375,68.375L19.375,68.375z M74.5,74.5 h-49c-0.541,0-1.072-0.073-1.583-0.212l17.429-17.429L50,66.956l8.653-10.096l17.429,17.429C75.572,74.427,75.041,74.5,74.5,74.5 L74.5,74.5z M80.625,68.375c0,0.541-0.073,1.072-0.211,1.583L62.652,52.195l17.96-20.953c0.008,0.127,0.014,0.255,0.014,0.383 L80.625,68.375L80.625,68.375z"></path>
+                  </svg>
+            </a></li>
+            
+         </ul>
+      </div>
+   </div>
+</div><!-- end .footer -->
+
+   <!-- Add jQuery and other scripts -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src=""><\/script>')</script>
+<script src="/assets/js/dropcap.min.js"></script>
+<script src="/assets/js/responsive-nav.min.js"></script>
+<script src="/assets/js/scripts.js"></script>
+
+
+</body>
+
+</html>

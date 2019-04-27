@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8" <![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9" <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+       })(window,document,'script','dataLayer','GTM-WP54B9K');</script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>Cilium Cheat Sheet</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+    <!-- Come and get me RSS readers -->
+    <link rel="alternate" type="application/rss+xml" title="ArthurChiao's Blog" href="http://0.0.0.0:4000/feed.xml" />
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <!--[if IE 8]><link rel="stylesheet" href="/assets/css/ie.css"><![endif]-->
+    <link rel="canonical" href="http://0.0.0.0:4000/blog/cilium-cheat-sheet/">
+
+    <!-- Modernizr -->
+    <script src="/assets/js/modernizr.custom.15390.js" type="text/javascript"></script>
+
+    
+</head>
+
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WP54B9K"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+    <div class="header">
+     <div class="container">
+         <h1 class="logo"><a href="/">ArthurChiao's Blog</a></h1>
+         <nav class="nav-collapse">
+             <ul class="noList">
+                 
+                   
+                   
+                   <li class="element first  ">
+                     <a href="/index.html">Home</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles">Articles</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles-zh">Articles (中文)</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/categories">Categories</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   last">
+                     <a href="/about">About</a>
+                   </li> 
+                 
+                 <!-- <li> <a href="https://github.com/arthurchiao/reading" target="_blank">Reading</a></li> -->
+                 <!-- <li> <a href="https://github.com/arthurchiao/" target="_blank">GitHub</a></li> -->
+             </ul>
+         </nav>
+     </div>
+ </div><!-- end .header -->
+
+
+   <div class="content">
+      <div class="container">
+         <div class="post">
+  
+  <h1 class="postTitle">Cilium Cheat Sheet</h1>
+  <p class="meta">2019-01-25 | <span class="time">37</span> Minute Read</p>
+
+  
+  
+  <h3 id="tldr">TL;DR</h3>
+
+<p><a href="https://github.com/cilium/cilium"><code class="highlighter-rouge">Cilium</code></a> is an eBPF-based open source
+software.  It provides transparent network connectivity, L3-L7 security, and
+loadbalancing between application workloads [1].</p>
+
+<p>This post serves as a cheat sheet of cilium <code class="highlighter-rouge">1.4.3</code> CLIs. Note that command set varies
+among different cilium releases, you should run <code class="highlighter-rouge">cilium -h</code> to get the full
+list of your installed version.</p>
+
+<p>CLI list of version <code class="highlighter-rouge">1.4.3</code>:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Command</th>
+      <th style="text-align: left">Used For</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><a href="#chap_1">bpf Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf config   [get           ]</code></td>
+      <td style="text-align: left">Manage endpoint configuration BPF maps</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf ct       [list          ]</code></td>
+      <td style="text-align: left">Connection tracking tables</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf endpoint [list|delete   ]</code></td>
+      <td style="text-align: left">Local endpoint map</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf ipcache  [list|get      ]</code></td>
+      <td style="text-align: left">Manage the IPCache mappings for IP/CIDR &lt;-&gt; Identity</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf lb       [list          ]</code></td>
+      <td style="text-align: left">Load-balancing configuration</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf metrics  [list          ]</code></td>
+      <td style="text-align: left">BPF datapath traffic metrics</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf policy   [add|delete|get]</code></td>
+      <td style="text-align: left">Manage policy related BPF maps</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf proxy    [list|flush    ]</code></td>
+      <td style="text-align: left">Proxy configuration</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium bpf tunnel   [list          ]</code></td>
+      <td style="text-align: left">Tunnel endpoint map</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_2">cleanup Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium cleanup  </code></td>
+      <td style="text-align: left">Reset the agent state</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_3">completion Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium completion</code></td>
+      <td style="text-align: left">Output shell completion code for bash</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_4">config Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium config</code></td>
+      <td style="text-align: left">Cilium configuration options</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_5">debuginfo Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium debuginfo</code></td>
+      <td style="text-align: left">Request available debugging information from agent</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_6">endpoint Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium endpoint config    </code></td>
+      <td style="text-align: left">View &amp; modify endpoint configuration</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium endpoint disconnect</code></td>
+      <td style="text-align: left">Disconnect an endpoint from the network</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium endpoint get       </code></td>
+      <td style="text-align: left">Display endpoint information</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium endpoint health    </code></td>
+      <td style="text-align: left">View endpoint health</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium endpoint labels    </code></td>
+      <td style="text-align: left">Manage label configuration of endpoint</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium endpoint list      </code></td>
+      <td style="text-align: left">List all endpoints</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium endpoint log       </code></td>
+      <td style="text-align: left">View endpoint status log</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium endpoint regenerate</code></td>
+      <td style="text-align: left">Force regeneration of endpoint program</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_7">identity Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium identity get </code></td>
+      <td style="text-align: left">Retrieve information about an identity</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium identity list</code></td>
+      <td style="text-align: left">List identities</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_8">kvstore Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium kvstore delete </code></td>
+      <td style="text-align: left">Delete a key</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium kvstore get    </code></td>
+      <td style="text-align: left">Retrieve a key</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium kvstore set    </code></td>
+      <td style="text-align: left">Set a key and value</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_9">map Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium map get  &lt;name&gt; [flags] </code></td>
+      <td style="text-align: left">Display BPF map information</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium map list  </code></td>
+      <td style="text-align: left">List all open BPF maps</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_10">metrics Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium metrics list</code></td>
+      <td style="text-align: left">List all metrics</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_11">monitor subcommands</a></td>
+      <td style="text-align: left">Monitor notifications and events emitted by the BPF programs</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium monitor [flags] </code></td>
+      <td style="text-align: left">Includes 1. Dropped packets; 2. Captured packet traces; 3. Debugging information</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_12">node subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium node list</code></td>
+      <td style="text-align: left">List nodes</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_13">Policy Subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium policy delete    </code></td>
+      <td style="text-align: left">Delete policy rules</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium policy get       </code></td>
+      <td style="text-align: left">Display policy node information</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium policy import    </code></td>
+      <td style="text-align: left">Import security policy in JSON format</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium policy trace     </code></td>
+      <td style="text-align: left">Trace a policy decision</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium policy validate  </code></td>
+      <td style="text-align: left">Validate a policy</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium policy wait      </code></td>
+      <td style="text-align: left">Wait for all endpoints to have updated to a given policy revision</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_14">Prefilter Subcommands</a></td>
+      <td style="text-align: left">Manage XDP CIDR filters</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium prefilter delete </code></td>
+      <td style="text-align: left">Delete CIDR filters</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium prefilter list   </code></td>
+      <td style="text-align: left">List CIDR filters</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium prefilter update </code></td>
+      <td style="text-align: left">Update CIDR filters</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_15">service subcommands</a></td>
+      <td style="text-align: left">Manage services &amp; loadbalancers</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium service delete   </code></td>
+      <td style="text-align: left">Delete a service</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium service get      </code></td>
+      <td style="text-align: left">Display service information</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium service list     </code></td>
+      <td style="text-align: left">List services</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium service update   </code></td>
+      <td style="text-align: left">Update a service</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_16">status subcommands</a></td>
+      <td style="text-align: left">Display status of daemon</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium status [flags]</code></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><a href="#chap_17">version subcommands</a></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code class="highlighter-rouge">cilium version [flags]</code></td>
+      <td style="text-align: left"> </td>
+    </tr>
+  </tbody>
+</table>
+
+<p>For each subcommand, <code class="highlighter-rouge">cilium [subcommand] -h</code> will print the detailed usage,
+e.g. <code class="highlighter-rouge">cilium bpf -h</code>, <code class="highlighter-rouge">cilium bpf config -h</code>.</p>
+
+<p>Looking at the commands’ outputs is a good way for learning cilium. So in the
+following, we will give some illustrative examples and the respective outputs.
+You could deploy a minikube+cilium environment to have a try [2].</p>
+
+<p><a id="chap_1"></a></p>
+
+<h2 id="1-cilium-bpf">1 <code class="highlighter-rouge">cilium bpf</code></h2>
+
+<h3 id="11-cilium-bpf-config">1.1 <code class="highlighter-rouge">cilium bpf config</code></h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bfp config get <span class="nt">--host</span> &lt;URI to host API&gt; <span class="nt">-o</span> json
+</code></pre></div></div>
+
+<h3 id="12-cilium-bpf-ct">1.2 <code class="highlighter-rouge">cilium bpf ct</code></h3>
+
+<p>ct: connection tracker.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf ct list &lt;endpoint&gt;
+</code></pre></div></div>
+
+<p>List global ct:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf ct list global
+TCP IN 10.15.0.1 9090:34382 <span class="nv">expires</span><span class="o">=</span>277365 <span class="nv">RxPackets</span><span class="o">=</span>5 <span class="nv">RxBytes</span><span class="o">=</span>452 <span class="nv">TxPackets</span><span class="o">=</span>5 <span class="nv">TxBytes</span><span class="o">=</span>1116 <span class="nv">Flags</span><span class="o">=</span>13 <span class="nv">RevNAT</span><span class="o">=</span>0 <span class="nv">SourceSecurityID</span><span class="o">=</span>2
+TCP IN 10.15.0.1 8080:48346 <span class="nv">expires</span><span class="o">=</span>277345 <span class="nv">RxPackets</span><span class="o">=</span>5 <span class="nv">RxBytes</span><span class="o">=</span>458 <span class="nv">TxPackets</span><span class="o">=</span>5 <span class="nv">TxBytes</span><span class="o">=</span>475 <span class="nv">Flags</span><span class="o">=</span>13 <span class="nv">RevNAT</span><span class="o">=</span>0 <span class="nv">SourceSecurityID</span><span class="o">=</span>2
+ICMP IN 10.15.0.1 0:0 related <span class="nv">expires</span><span class="o">=</span>277435 <span class="nv">RxPackets</span><span class="o">=</span>1 <span class="nv">RxBytes</span><span class="o">=</span>74 <span class="nv">TxPackets</span><span class="o">=</span>0 <span class="nv">TxBytes</span><span class="o">=</span>0 <span class="nv">Flags</span><span class="o">=</span>10 <span class="nv">RevNAT</span><span class="o">=</span>0 <span class="nv">SourceSecurityID</span><span class="o">=</span>2
+</code></pre></div></div>
+
+<h3 id="13-cilium-bpf-endpoint">1.3 <code class="highlighter-rouge">cilium bpf endpoint</code></h3>
+
+<p>An endpoint is a namespaced network interface that will be applied policies on.</p>
+
+<p>List all local endpoint entries:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf endpoint list
+IP ADDRESS           LOCAL ENDPOINT INFO
+10.15.0.1            <span class="o">(</span>localhost<span class="o">)</span>
+10.15.117.125        <span class="nb">id</span><span class="o">=</span>12908 <span class="nv">ifindex</span><span class="o">=</span>22  <span class="nv">mac</span><span class="o">=</span>DA:83:01:55:60:C2 <span class="nv">nodemac</span><span class="o">=</span>62:05:3A:4E:A7:4B
+10.15.237.131        <span class="nb">id</span><span class="o">=</span>60459 <span class="nv">ifindex</span><span class="o">=</span>18  <span class="nv">mac</span><span class="o">=</span>AA:E2:2B:D5:AD:41 <span class="nv">nodemac</span><span class="o">=</span>0A:DB:58:35:CB:41
+</code></pre></div></div>
+
+<p>Delete local endpoint entries:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf endpoint delete
+</code></pre></div></div>
+
+<h3 id="14-cilium-bpf-ipcache">1.4 <code class="highlighter-rouge">cilium bpf ipcache</code></h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf ipcache get
+<span class="nv">$ </span>cilium bpf ipcache list
+</code></pre></div></div>
+
+<h3 id="15-cilium-bpf-lb">1.5 <code class="highlighter-rouge">cilium bpf lb</code></h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf lb list
+SERVICE ADDRESS        BACKEND ADDRESS
+10.96.0.10:53          0.0.0.0:0 <span class="o">(</span>0<span class="o">)</span>
+                       10.15.38.236:53 <span class="o">(</span>3<span class="o">)</span>
+                       10.15.35.129:53 <span class="o">(</span>3<span class="o">)</span>
+10.102.163.245:80      10.15.49.158:9090 <span class="o">(</span>4<span class="o">)</span>
+                       0.0.0.0:0 <span class="o">(</span>0<span class="o">)</span>
+</code></pre></div></div>
+
+<h3 id="16-cilium-bpf-metrics">1.6 <code class="highlighter-rouge">cilium bpf metrics</code></h3>
+
+<p>BPF datapath traffic metrics.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf metrics list
+REASON                        DIRECTION   PACKETS   BYTES
+Error retrieving tunnel key   Egress      231382    18545353
+Invalid <span class="nb">source </span>ip             Unknown     1508284   120985464
+Success                       Egress      226488    69418245
+Success                       Unknown     207163    20200009
+</code></pre></div></div>
+
+<h3 id="17-cilium-bpf-policy">1.7 <code class="highlighter-rouge">cilium bpf policy</code></h3>
+
+<p>Mange policy related BPF maps.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf policy <span class="o">[</span>add|delete|get]
+</code></pre></div></div>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf policy get <span class="nt">--all</span>
+/sys/fs/bpf/tc/globals/cilium_policy_2159:
+
+DIRECTION   LABELS <span class="o">(</span><span class="nb">source</span>:key[<span class="o">=</span>value]<span class="o">)</span>                                    PORT/PROTO   PROXY PORT   BYTES     PACKETS
+Ingress     reserved:host                                                  ANY          NONE         0         0
+Ingress     reserved:world                                                 ANY          NONE         0         0
+Ingress     reserved:health                                                ANY          NONE         0         0
+Ingress     k8s:io.cilium.k8s.policy.cluster<span class="o">=</span>default                       ANY          NONE         0         0
+
+/sys/fs/bpf/tc/globals/cilium_policy_2160:
+
+/sys/fs/bpf/tc/globals/cilium_policy_2161:
+
+<span class="nv">$ </span>cilium bpf policy get <span class="nt">--all</span> <span class="nt">-n</span>
+/sys/fs/bpf/tc/globals/cilium_policy_2159:
+
+DIRECTION   IDENTITY   PORT/PROTO   PROXY PORT   BYTES     PACKETS
+Ingress     1          ANY          NONE         0         0
+Ingress     2          ANY          NONE         0         0
+Ingress     104        ANY          NONE         0         0
+Ingress     105        ANY          NONE         0         0
+</code></pre></div></div>
+
+<h3 id="18-cilium-bpf-proxy">1.8 <code class="highlighter-rouge">cilium bpf proxy</code></h3>
+
+<p>Proxy configuration.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf proxy list
+
+<span class="nv">$ </span>cilium bpf proxy flush
+</code></pre></div></div>
+
+<h3 id="19-cilium-bpf-tunnel">1.9 <code class="highlighter-rouge">cilium bpf tunnel</code></h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium bpf tunnel list
+</code></pre></div></div>
+
+<p><a id="chap_2"></a></p>
+
+<h2 id="2-cilium-cleanup">2 <code class="highlighter-rouge">cilium cleanup</code></h2>
+
+<p><a id="chap_3"></a></p>
+
+<h2 id="3-cilium-completion">3 <code class="highlighter-rouge">cilium completion</code></h2>
+
+<p><a id="chap_4"></a></p>
+
+<h2 id="4-cilium-config">4 <code class="highlighter-rouge">cilium config</code></h2>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium config <span class="nt">-o</span> json
+<span class="o">{</span>
+  <span class="s2">"Conntrack"</span>: <span class="s2">"Enabled"</span>,
+  <span class="s2">"ConntrackAccounting"</span>: <span class="s2">"Enabled"</span>,
+  <span class="s2">"ConntrackLocal"</span>: <span class="s2">"Disabled"</span>,
+  <span class="s2">"Debug"</span>: <span class="s2">"Disabled"</span>,
+  <span class="s2">"DropNotification"</span>: <span class="s2">"Enabled"</span>,
+  <span class="s2">"MonitorAggregationLevel"</span>: <span class="s2">"None"</span>,
+  <span class="s2">"PolicyTracing"</span>: <span class="s2">"Disabled"</span>,
+  <span class="s2">"TraceNotification"</span>: <span class="s2">"Enabled"</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><a id="chap_5"></a></p>
+
+<h2 id="5-cilium-debuginfo">5 <code class="highlighter-rouge">cilium debuginfo</code></h2>
+
+<p>This command will dump the <strong>very very</strong> detailed information about all aspects
+of debugging, following is a highly truncated output:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium debuginfo
+
+<span class="c"># Cilium debug information</span>
+
+<span class="c">#### Service list</span>
+
+ID   Frontend               Backend
+1    10.108.128.131:32379   1 <span class="o">=&gt;</span> 10.0.2.15:32379
+2    10.108.128.131:32380   1 <span class="o">=&gt;</span> 10.0.2.15:32380
+3    10.96.0.10:53          1 <span class="o">=&gt;</span> 10.15.35.129:53
+
+<span class="c">#### Policy get</span>
+
+Revision: 5
+
+<span class="c">#### Cilium memory map</span>
+
+00400000-038ec000 r-xp 00000000 08:01 2097166                            /usr/bin/cilium-agent
+04359000-0437a000 rw-p 00000000 00:00 0                                  <span class="o">[</span>heap]
+c000000000-c000017000 rw-p 00000000 00:00 0
+
+<span class="c">#### Endpoint Health 60459</span>
+
+Overall Health:   OK
+BPF Health:       OK
+Policy Health:    OK
+Connected:        <span class="nb">yes</span>
+
+<span class="c">#### Cilium status</span>
+
+KVStore:                Ok   etcd: 1/1 connected: http://127.0.0.1:31079 - 3.3.2 <span class="o">(</span>Leader<span class="o">)</span>
+ContainerRuntime:       Ok   docker daemon: OK
+Kubernetes:             Ok   1.13 <span class="o">(</span>v1.13.2<span class="o">)</span> <span class="o">[</span>linux/amd64]
+Kubernetes APIs:        <span class="o">[</span><span class="s2">"networking.k8s.io/v1::NetworkPolicy"</span>, <span class="s2">"CustomResourceDefinition"</span>, <span class="s2">"cilium/v2::CiliumNetworkPolicy"</span><span class="o">]</span>
+Cilium:                 Ok   OK
+NodeMonitor:            Disabled
+Cilium health daemon:   Ok
+IPv4 address pool:      10/65535 allocated
+
+Controller Status:   63/63 healthy
+  Name                                        Last success   Last error   Count   Message
+  cilium-health-ep                            never          never        0       no error
+  dns-poller                                  never          never        0       no error
+  ipcache-bpf-garbage-collection              never          never        0       no error
+
+<span class="c">#### Cilium environment keys</span>
+
+bpf-root:
+kvstore-opt:map[etcd.config:/var/lib/etcd-config/etcd.config]
+masquerade:true
+cluster-id:0
+
+<span class="c">#### Endpoint list</span>
+
+ENDPOINT   POLICY <span class="o">(</span>ingress<span class="o">)</span>   POLICY <span class="o">(</span>egress<span class="o">)</span>   IDENTITY   LABELS <span class="o">(</span><span class="nb">source</span>:key[<span class="o">=</span>value]<span class="o">)</span>                       IPv6                 IPv4            STATUS
+           ENFORCEMENT        ENFORCEMENT
+10916      Disabled           Disabled          44531      k8s:class<span class="o">=</span>deathstar                               f00d::a0f:0:0:2aa4   10.15.43.62     ready
+                                                           k8s:org<span class="o">=</span>empire
+
+<span class="c">#### BPF Policy Get 10916</span>
+
+DIRECTION   LABELS <span class="o">(</span><span class="nb">source</span>:key[<span class="o">=</span>value]<span class="o">)</span>                              PORT/PROTO   PROXY PORT   BYTES   PACKETS
+Ingress     k8s:app<span class="o">=</span>etcd                                             ANY          NONE         0       0
+Egress      reserved:host                                            ANY          NONE         4998    51
+
+<span class="c">#### Endpoint Get 10916</span>
+
+<span class="o">[</span>
+  <span class="o">{</span>
+    <span class="s2">"id"</span>: 10916,
+    <span class="s2">"spec"</span>: <span class="o">{</span>
+      <span class="s2">"label-configuration"</span>: <span class="o">{</span>
+        <span class="s2">"user"</span>: <span class="o">[]</span>
+      <span class="o">}</span>,
+      <span class="s2">"options"</span>: <span class="o">{</span>
+        <span class="s2">"Conntrack"</span>: <span class="s2">"Enabled"</span>,
+        ...
+        <span class="s2">"TraceNotification"</span>: <span class="s2">"Enabled"</span>
+      <span class="o">}</span>
+    <span class="o">}</span>,
+    <span class="s2">"status"</span>: <span class="o">{</span>
+      <span class="s2">"controllers"</span>: <span class="o">[</span>
+        <span class="o">{</span>
+          <span class="s2">"name"</span>: <span class="s2">"resolve-identity-10916"</span>,
+          <span class="s2">"status"</span>: <span class="o">{</span>
+            <span class="s2">"last-failure-timestamp"</span>: <span class="s2">"0001-01-01T00:00:00.000Z"</span>,
+            <span class="s2">"last-success-timestamp"</span>: <span class="s2">"2019-01-25T08:28:55.761Z"</span>,
+            <span class="s2">"success-count"</span>: 295
+          <span class="o">}</span>,
+        <span class="o">}</span>,
+     <span class="s2">"external-identifiers"</span>: <span class="o">{</span>
+       <span class="s2">"container-id"</span>: <span class="s2">"7ba580c3b49c53ba03e72b32a182150"</span>,
+       <span class="s2">"container-name"</span>: <span class="s2">"k8s_POD_deathstar-6fb5694d48-ttln2_default_e395bf0b-77bc14c_0"</span>,
+       <span class="s2">"pod-name"</span>: <span class="s2">"default/deathstar-6fb5694d48-ttln2"</span>
+     <span class="o">}</span>,
+     <span class="s2">"identity"</span>: <span class="o">{</span>
+       <span class="s2">"id"</span>: 44531,
+       <span class="s2">"labels"</span>: <span class="o">[</span>
+         <span class="s2">"k8s:io.cilium.k8s.policy.cluster=default"</span>,
+       <span class="o">]</span>,
+      <span class="o">}</span>,
+      <span class="s2">"networking"</span>: <span class="o">{</span>
+        <span class="s2">"addressing"</span>: <span class="o">[</span>
+          <span class="o">{</span>
+            <span class="s2">"ipv4"</span>: <span class="s2">"10.15.43.62"</span>,
+          <span class="o">}</span>
+        <span class="o">]</span>,
+        <span class="s2">"interface-index"</span>: 20,
+        <span class="s2">"interface-name"</span>: <span class="s2">"lxc692d4fb6516a"</span>,
+  <span class="s2">"policy"</span>: <span class="o">{</span>
+    <span class="s2">"proxy-statistics"</span>: <span class="o">[]</span>,
+    <span class="s2">"realized"</span>: <span class="o">{</span>
+      <span class="s2">"allowed-egress-identities"</span>: <span class="o">[</span>
+        101,
+        44531,
+        4
+      <span class="o">]</span>,
+
+<span class="c">#### Identity get 44531</span>
+
+ID      LABELS
+44531   k8s:class<span class="o">=</span>deathstar
+</code></pre></div></div>
+
+<p>The output is a markdown file, which could be used when reporting a bug on the
+github <a href="https://github.com/cilium/cilium/issues">issue tracker</a>, or sending to
+the Cilium develop team [3].</p>
+
+<p><a id="chap_6"></a></p>
+
+<h2 id="6-cilium-endpoint">6 <code class="highlighter-rouge">cilium endpoint</code></h2>
+
+<p>List all endpoints:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium endpoint list
+ENDPOINT   POLICY <span class="o">(</span>ingress<span class="o">)</span>   POLICY <span class="o">(</span>egress<span class="o">)</span>   IDENTITY   LABELS <span class="o">(</span><span class="nb">source</span>:key[<span class="o">=</span>value]<span class="o">)</span>                    IPv6  IPv4            STATUS
+           ENFORCEMENT        ENFORCEMENT
+10916      Disabled           Disabled          44531      k8s:class<span class="o">=</span>deathstar                                  10.15.43.62     ready
+                                                           k8s:org<span class="o">=</span>empire
+12041      Disabled           Disabled          104        k8s:io.cilium.k8s.policy.cluster<span class="o">=</span>default             10.15.35.129    ready
+                                                           k8s:io.cilium.k8s.policy.serviceaccount<span class="o">=</span>coredns
+                                                           k8s:k8s-app<span class="o">=</span>kube-dns
+</code></pre></div></div>
+
+<p>Note that, the endpoint with <code class="highlighter-rouge">identity=4</code> is the built in <code class="highlighter-rouge">cilium-health</code>
+service, which has the unique label <code class="highlighter-rouge">reserved:health</code>.</p>
+
+<p>Change endpoint configurations:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium endpoint config &lt;endpoint ID&gt; <span class="nv">DropNotification</span><span class="o">=</span><span class="nb">false </span><span class="nv">TraceNotification</span><span class="o">=</span><span class="nb">false</span>
+</code></pre></div></div>
+
+<p>Check <code class="highlighter-rouge">cilium-health</code>’s (with endpoint ID <code class="highlighter-rouge">59709</code> in this example) logs:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium endpoint log 59709
+Timestamp              Status   State                   Message
+2019-01-29T10:33:29Z   OK       ready                   Successfully regenerated endpoint program <span class="o">(</span>Reason: datapath ipcache<span class="o">)</span>
+2019-01-29T10:33:29Z   OK       ready                   Completed endpoint regeneration with no pending regeneration requests
+2019-01-29T10:33:28Z   OK       regenerating            Regenerating endpoint: datapath ipcache
+2019-01-29T10:33:28Z   OK       waiting-to-regenerate   Triggering endpoint regeneration due to datapath ipcache
+</code></pre></div></div>
+
+<p>Other commands:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium endpoint get/health/labels/regenerate
+</code></pre></div></div>
+
+<p><a id="chap_7"></a></p>
+
+<h2 id="7-cilium-identity">7 <code class="highlighter-rouge">cilium identity</code></h2>
+
+<p>cilium identity get/list</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium identity list
+ID      LABELS
+1       reserved:host
+2       reserved:world
+3       reserved:unmanaged
+4       reserved:health
+5       reserved:init
+100     k8s:io.cilium.k8s.policy.cluster<span class="o">=</span>default
+        k8s:io.cilium.k8s.policy.serviceaccount<span class="o">=</span>cilium-etcd-sa
+        k8s:io.cilium/app<span class="o">=</span>etcd-operator
+101     k8s:app<span class="o">=</span>etcd
+...
+</code></pre></div></div>
+
+<p>Note that the first 5 identities are all <code class="highlighter-rouge">reserved</code> ones, you will see them in
+some ingress/egress rules.</p>
+
+<p><a id="chap_8"></a></p>
+
+<h2 id="8-cilium-kvstore">8 <code class="highlighter-rouge">cilium kvstore</code></h2>
+
+<p>cilium kvstore get/set/delete</p>
+
+<p><a id="chap_9"></a></p>
+
+<h2 id="9-cilium-map">9 <code class="highlighter-rouge">cilium map</code></h2>
+
+<p>Access BPF maps.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># cilium map list</span>
+Name                     Num entries   Num errors   Cache enabled
+cilium_lb4_reverse_nat   6             0            <span class="nb">true
+</span>cilium_lb4_rr_seq        0             0            <span class="nb">true
+</span>cilium_lb4_services      6             0            <span class="nb">true
+</span>cilium_lxc               20            0            <span class="nb">true
+</span>cilium_proxy4            0             0            <span class="nb">false
+</span>cilium_ipcache           22            0            <span class="nb">true
+</span>cilium_ep_config_12041   1             0            <span class="nb">true</span>
+...
+</code></pre></div></div>
+
+<p>Display BPF map information:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium map get cilium_ipcache
+Key                      Value   State   Error
+10.15.38.236/32          104     <span class="nb">sync
+</span>10.0.2.15/32             1       <span class="nb">sync
+</span>10.15.86.181/32          4       <span class="nb">sync
+</span>10.15.71.253/32          44531   <span class="nb">sync</span>
+
+<span class="nv">$ </span>c map get cilium_ep_config_3847
+Key Value State   Error
+0 SKIP_POLICY_INGRESS,SKIP_POLICY_EGRESS,0004,0008,0010,...,40000000,80000000,, 0, 0, 0.0.0.0, ::, 0, 0, 00:00:00:00:00:00   <span class="nb">sync</span>
+</code></pre></div></div>
+
+<p><a id="chap_10"></a></p>
+
+<h2 id="10-cilium-metrics">10 <code class="highlighter-rouge">cilium metrics</code></h2>
+
+<p>Access metric status. Including much of statistics metrics:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium metrics list
+Metric                                              Labels                                                     Value
+cilium_controllers_failing                                                                                     0.000000
+cilium_controllers_runs_duration_seconds            <span class="nv">status</span><span class="o">=</span><span class="s2">"failure"</span>                                           0.029636
+cilium_controllers_runs_duration_seconds            <span class="nv">status</span><span class="o">=</span><span class="s2">"success"</span>                                           2569.774532
+cilium_controllers_runs_total                       <span class="nv">status</span><span class="o">=</span><span class="s2">"failure"</span>                                           1.000000
+cilium_controllers_runs_total                       <span class="nv">status</span><span class="o">=</span><span class="s2">"success"</span>                                           179296.000000
+cilium_datapath_conntrack_gc_duration_seconds       <span class="nv">family</span><span class="o">=</span><span class="s2">"ipv4"</span> <span class="nv">protocol</span><span class="o">=</span><span class="s2">"TCP"</span> <span class="nv">status</span><span class="o">=</span><span class="s2">"completed"</span>            5.213934
+cilium_datapath_conntrack_gc_duration_seconds       <span class="nv">family</span><span class="o">=</span><span class="s2">"ipv4"</span> <span class="nv">protocol</span><span class="o">=</span><span class="s2">"non-TCP"</span> <span class="nv">status</span><span class="o">=</span><span class="s2">"completed"</span>        1.898584
+</code></pre></div></div>
+
+<p><a id="chap_11"></a></p>
+
+<h2 id="11-cilium-monitor">11 <code class="highlighter-rouge">cilium monitor</code></h2>
+
+<p>The monitor displays notifications and events emitted by the BPF
+programs attached to endpoints and devices. This includes:</p>
+
+<ul>
+  <li>Dropped packet notifications</li>
+  <li>Captured packet traces</li>
+  <li>Debugging information</li>
+</ul>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># cilium monitor [flags]</span>
+
+Flags:
+      <span class="nt">--from</span> <span class="o">[]</span>uint16         Filter by <span class="nb">source </span>endpoint <span class="nb">id</span>
+      <span class="nt">--hex</span>                   Do not dissect, print payload <span class="k">in </span>HEX
+  <span class="nt">-j</span>, <span class="nt">--json</span>                  Enable json output. Shadows <span class="nt">-v</span> flag
+      <span class="nt">--related-to</span> <span class="o">[]</span>uint16   Filter by either <span class="nb">source </span>or destination endpoint <span class="nb">id</span>
+      <span class="nt">--to</span> <span class="o">[]</span>uint16           Filter by destination endpoint <span class="nb">id</span>
+  <span class="nt">-t</span>, <span class="nt">--type</span> <span class="o">[]</span>string         Filter by event types <span class="o">[</span>agent capture debug drop l7 trace]
+  <span class="nt">-v</span>, <span class="nt">--verbose</span>               Enable verbose output
+</code></pre></div></div>
+
+<p>Monitor all BPF notifications and events:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium monitor
+&lt;- host flow 0x6154a2bb identity 2-&gt;0 state new ifindex 0: 192.168.99.100:8443
+-&gt; 10.15.38.236:36598 tcp ACK
+-&gt; endpoint 34542 flow 0x6154a2bb identity 2-&gt;104 state reply ifindex lxcc2615b8d08d2: 10.96.0.1:443 -&gt; 10.15.38.236:36598 tcp ACK
+&lt;- endpoint 34542 flow 0x30ce3dbd identity 104-&gt;0 state new ifindex 0: 10.15.38.236:36598 -&gt; 10.96.0.1:443 tcp ACK
+-&gt; stack flow 0x30ce3dbd identity 104-&gt;2 state established ifindex 0: 10.15.38.236:36598 -&gt; 192.168.99.100:8443 tcp ACK
+&lt;- host flow 0x43caa648 identity 2-&gt;0 state new ifindex 0: 192.168.99.100:8443
+</code></pre></div></div>
+
+<p>Monitor packet drops:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium monitor <span class="nt">--type</span> drop
+</code></pre></div></div>
+
+<p>Check all traffic to endpoint 3991 (192.168.0.121 in the below output):</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium monitor <span class="nt">--to</span> 3991
+-&gt; endpoint 3991 flow 0x3ed38d3c identity 1-&gt;4 state new ifindex cilium_health: 192.168.0.1:58476 -&gt; 192.168.0.121:4240 tcp SYN
+-&gt; endpoint 3991 flow 0x3ed38d3c identity 1-&gt;4 state established ifindex cilium_health: 192.168.0.1:58476 -&gt; 192.168.0.121:4240 tcp ACK
+-&gt; endpoint 3991 flow 0x3ed38d3c identity 1-&gt;4 state established ifindex cilium_health: 192.168.0.1:58476 -&gt; 192.168.0.121:4240 tcp ACK
+</code></pre></div></div>
+
+<p><a id="chap_12"></a></p>
+
+<h2 id="12-cilium-node">12 <code class="highlighter-rouge">cilium node</code></h2>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium node list
+Name       IPv4 Address   Endpoint CIDR   IPv6 Address   Endpoint CIDR
+minikube   10.0.2.15      10.15.0.0/16    &lt;nil&gt;          f00d::a0f:0:0:0/112
+</code></pre></div></div>
+
+<p><a id="chap_13"></a></p>
+
+<h2 id="13-cilium-policy">13 <code class="highlighter-rouge">cilium policy</code></h2>
+
+<p>Manage security policies.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium policy <span class="o">[</span><span class="nb">command</span><span class="o">]</span>
+
+Available Commands:
+  delete      Delete policy rules
+  get         Display policy node information
+  import      Import security policy <span class="k">in </span>JSON format
+  trace       Trace a policy decision
+  validate    Validate a policy
+  <span class="nb">wait        </span>Wait <span class="k">for </span>all endpoints to have updated to a given policy revision
+</code></pre></div></div>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium policy get
+<span class="o">[</span>
+  <span class="o">{</span>
+    <span class="s2">"endpointSelector"</span>: <span class="o">{</span>
+      <span class="s2">"matchLabels"</span>: <span class="o">{</span>
+        <span class="s2">"any:class"</span>: <span class="s2">"deathstar"</span>,
+        <span class="s2">"any:org"</span>: <span class="s2">"empire"</span>,
+        <span class="s2">"k8s:io.kubernetes.pod.namespace"</span>: <span class="s2">"default"</span>
+      <span class="o">}</span>
+    <span class="o">}</span>,
+    <span class="s2">"ingress"</span>: <span class="o">[</span>
+      <span class="o">{</span>
+        <span class="s2">"fromEndpoints"</span>: <span class="o">[</span>
+          <span class="o">{</span>
+            <span class="s2">"matchLabels"</span>: <span class="o">{</span>
+              <span class="s2">"any:org"</span>: <span class="s2">"empire"</span>,
+              <span class="s2">"k8s:io.kubernetes.pod.namespace"</span>: <span class="s2">"default"</span>
+            <span class="o">}</span>
+          <span class="o">}</span>
+        <span class="o">]</span>,
+        <span class="s2">"toPorts"</span>: <span class="o">[</span>
+          <span class="o">{</span>
+            <span class="s2">"ports"</span>: <span class="o">[</span>
+              <span class="o">{</span>
+                <span class="s2">"port"</span>: <span class="s2">"80"</span>,
+                <span class="s2">"protocol"</span>: <span class="s2">"TCP"</span>
+              <span class="o">}</span>
+            <span class="o">]</span>,
+            <span class="s2">"rules"</span>: <span class="o">{</span>
+              <span class="s2">"http"</span>: <span class="o">[</span>
+                <span class="o">{</span>
+                  <span class="s2">"path"</span>: <span class="s2">"/v1/request-landing"</span>,
+                  <span class="s2">"method"</span>: <span class="s2">"POST"</span>
+
+</code></pre></div></div>
+
+<p><a id="chap_14"></a></p>
+
+<h2 id="14-cilium-prefilter">14 <code class="highlighter-rouge">cilium prefilter</code></h2>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># cilium prefilter -h</span>
+Manage XDP CIDR filters
+
+Usage:
+  cilium prefilter <span class="o">[</span><span class="nb">command</span><span class="o">]</span>
+
+Available Commands:
+  delete      Delete CIDR filters
+  list        List CIDR filters
+  update      Update CIDR filters
+</code></pre></div></div>
+
+<p><a id="chap_15"></a></p>
+
+<h2 id="15-cilium-service">15 <code class="highlighter-rouge">cilium service</code></h2>
+
+<p>Manage services &amp; loadbalancers.</p>
+
+<p>List all services:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># cilium service list</span>
+ID   Frontend               Backend
+1    10.108.128.131:32379   1 <span class="o">=&gt;</span> 10.0.2.15:32379
+2    10.108.128.131:32380   1 <span class="o">=&gt;</span> 10.0.2.15:32380
+3    10.96.0.10:53          1 <span class="o">=&gt;</span> 10.15.35.129:53
+                            2 <span class="o">=&gt;</span> 10.15.38.236:53
+4    10.102.163.245:80      1 <span class="o">=&gt;</span> 10.15.49.158:9090
+</code></pre></div></div>
+
+<p>Get service <code class="highlighter-rouge">6</code>:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium service get 6 <span class="nt">-o</span> json
+<span class="o">{</span>
+  <span class="s2">"spec"</span>: <span class="o">{</span>
+    <span class="s2">"backend-addresses"</span>: <span class="o">[</span>
+      <span class="o">{</span>
+        <span class="s2">"ip"</span>: <span class="s2">""</span>,
+        <span class="s2">"port"</span>: 6443
+      <span class="o">}</span>
+    <span class="o">]</span>,
+    <span class="s2">"frontend-address"</span>: <span class="o">{</span>
+      <span class="s2">"ip"</span>: <span class="s2">"10.32.0.1"</span>,
+      <span class="s2">"port"</span>: 443,
+      <span class="s2">"protocol"</span>: <span class="s2">"TCP"</span>
+    <span class="o">}</span>,
+    <span class="s2">"id"</span>: 1
+  <span class="o">}</span>,
+  <span class="s2">"status"</span>: <span class="o">{</span>
+    <span class="s2">"realized"</span>: <span class="o">{</span>
+      <span class="s2">"backend-addresses"</span>: <span class="o">[</span>
+        <span class="o">{</span>
+          <span class="s2">"ip"</span>: <span class="s2">""</span>,
+          <span class="s2">"port"</span>: 6443
+        <span class="o">}</span>
+      <span class="o">]</span>,
+      <span class="s2">"frontend-address"</span>: <span class="o">{</span>
+        <span class="s2">"ip"</span>: <span class="s2">"10.32.0.1"</span>,
+        <span class="s2">"port"</span>: 443,
+        <span class="s2">"protocol"</span>: <span class="s2">"TCP"</span>
+      <span class="o">}</span>,
+      <span class="s2">"id"</span>: 1
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><a id="chap_16"></a></p>
+
+<h2 id="16-cilium-status">16 <code class="highlighter-rouge">cilium status</code></h2>
+
+<p>Display status of daemon.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium status
+KVStore:                Ok   etcd: 1/1 connected: https://&lt;IP&gt;:2379 - 3.2.22 <span class="o">(</span>Leader<span class="o">)</span>
+ContainerRuntime:       Ok   docker daemon: OK
+Kubernetes:             Ok   1.13 <span class="o">(</span>v1.13.2<span class="o">)</span> <span class="o">[</span>linux/amd64]
+Kubernetes APIs:        <span class="o">[</span><span class="s2">"core/v1::Node"</span>, <span class="s2">"core/v1::Namespace"</span>, <span class="s2">"CustomResourceDefinition"</span>, <span class="s2">"cilium/v2::CiliumNetworkPolicy"</span>, <span class="s2">"networking.k8s.io/v1::NetworkPolicy"</span>, <span class="s2">"core/v1::Service"</span>, <span class="s2">"core/v1::Endpoint"</span>, <span class="s2">"core/v1::Pods"</span><span class="o">]</span>
+Cilium:                 Ok   OK
+NodeMonitor:            Disabled
+Cilium health daemon:   Ok
+IPv4 address pool:      4/65535 allocated
+IPv6 address pool:      3/65535 allocated
+Controller Status:      27/27 healthy
+Proxy Status:           OK, ip 10.94.0.1, port-range 10000-20000
+Cluster health:   1/1 reachable   <span class="o">(</span>2019-01-29T10:17:04Z<span class="o">)</span>
+</code></pre></div></div>
+
+<p><a id="chap_17"></a></p>
+
+<h2 id="17-cilium-version">17 <code class="highlighter-rouge">cilium version</code></h2>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>cilium version
+Client: 1.4.3 31d8e0219 2019-04-05T11:28:50+02:00 go version go1.11.1 linux/amd64
+Daemon: 1.4.3 31d8e0219 2019-04-05T11:28:50+02:00 go version go1.11.1 linux/amd64
+</code></pre></div></div>
+
+<h2 id="references">References</h2>
+
+<ol>
+  <li><a href="https://github.com/cilium/cilium">Cilium: github</a></li>
+  <li><a href="https://cilium.readthedocs.io/en/stable/gettingstarted/minikube/">Cilium: getting started with minikube</a></li>
+  <li><a href="https://cilium.readthedocs.io/en/v1.4/troubleshooting/">Cilium: Trouble Shooting</a></li>
+</ol>
+
+
+  <!-- POST NAVIGATION -->
+  <div class="postNav clearfix">
+     
+      <a class="prev" href="/blog/tuning-stack-tx-zh-8/"><span>&laquo;&nbsp;[译] Linux网络栈监控和调优：发送数据 8</span>
+      
+    </a>
+      
+      
+      <a class="next" href="/blog/bcc-ebpf-tutorial-zh/"><span>bcc/ebpf 安装及示例&nbsp;&raquo;</span>
+       
+      </a>
+     
+  </div>
+</div>
+
+
+         
+
+      </div>
+   </div><!-- end .content -->
+
+   <div class="footer">
+   <div class="container">
+      <p class="copy">&copy; 2016-2019
+      <a href="https://arthurchiao.github.io">Arthur Chiao</a>, Powered by
+      <a href="http://jekyllrb.com">Jekyll </a>, Theme originated from
+      <a href="https://github.com/brianmaierjr/long-haul"> Long Haul.</a>
+
+      <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+      <span id="busuanzi_container_site_pv"> Site visits:
+          <span id="busuanzi_value_site_pv"></span>, powered by<a href="http://busuanzi.ibruce.info/"> busuanzi</a>
+      </span>
+
+      </p>
+
+      <div class="footer-links"> 
+         <ul class="noList"> 
+            
+            <li><a href="https://www.facebook.com/profile.php?id=100014334455077">
+                  <svg id="facebook-square" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M82.667,1H17.335C8.351,1,1,8.351,1,17.336v65.329c0,8.99,7.351,16.335,16.334,16.335h65.332 C91.652,99.001,99,91.655,99,82.665V17.337C99,8.353,91.652,1.001,82.667,1L82.667,1z M84.318,50H68.375v42.875H50V50h-8.855V35.973 H50v-9.11c0-12.378,5.339-19.739,19.894-19.739h16.772V22.3H72.967c-4.066-0.007-4.57,2.12-4.57,6.078l-0.023,7.594H86.75 l-2.431,14.027V50z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://linkedin.com/in/yanan-zhao-7691317b?trk=hp-identity-photo">
+                  <svg id="linkedin" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M99.001,19.428c-3.606,1.608-7.48,2.695-11.547,3.184c4.15-2.503,7.338-6.466,8.841-11.189 c-3.885,2.318-8.187,4-12.768,4.908c-3.667-3.931-8.893-6.387-14.676-6.387c-11.104,0-20.107,9.054-20.107,20.223 c0,1.585,0.177,3.128,0.52,4.609c-16.71-0.845-31.525-8.895-41.442-21.131C6.092,16.633,5.1,20.107,5.1,23.813 c0,7.017,3.55,13.208,8.945,16.834c-3.296-0.104-6.397-1.014-9.106-2.529c-0.002,0.085-0.002,0.17-0.002,0.255 c0,9.799,6.931,17.972,16.129,19.831c-1.688,0.463-3.463,0.71-5.297,0.71c-1.296,0-2.555-0.127-3.783-0.363 c2.559,8.034,9.984,13.882,18.782,14.045c-6.881,5.424-15.551,8.657-24.971,8.657c-1.623,0-3.223-0.096-4.796-0.282 c8.898,5.738,19.467,9.087,30.82,9.087c36.982,0,57.206-30.817,57.206-57.543c0-0.877-0.02-1.748-0.059-2.617 C92.896,27.045,96.305,23.482,99.001,19.428z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://github.com/ArthurChiao">
+                  <svg id="github" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M79.099,79.099 c-3.782,3.782-8.184,6.75-13.083,8.823c-1.245,0.526-2.509,0.989-3.79,1.387v-7.344c0-3.86-1.324-6.699-3.972-8.517 c1.659-0.16,3.182-0.383,4.57-0.67c1.388-0.287,2.855-0.702,4.402-1.245c1.547-0.543,2.935-1.189,4.163-1.938 c1.228-0.75,2.409-1.723,3.541-2.919s2.082-2.552,2.847-4.067s1.372-3.334,1.818-5.455c0.446-2.121,0.67-4.458,0.67-7.01 c0-4.945-1.611-9.155-4.833-12.633c1.467-3.828,1.308-7.991-0.478-12.489l-1.197-0.143c-0.829-0.096-2.321,0.255-4.474,1.053 c-2.153,0.798-4.57,2.105-7.249,3.924c-3.797-1.053-7.736-1.579-11.82-1.579c-4.115,0-8.039,0.526-11.772,1.579 c-1.69-1.149-3.294-2.097-4.809-2.847c-1.515-0.75-2.727-1.26-3.637-1.532c-0.909-0.271-1.754-0.439-2.536-0.503 c-0.782-0.064-1.284-0.079-1.507-0.048c-0.223,0.031-0.383,0.064-0.478,0.096c-1.787,4.53-1.946,8.694-0.478,12.489 c-3.222,3.477-4.833,7.688-4.833,12.633c0,2.552,0.223,4.889,0.67,7.01c0.447,2.121,1.053,3.94,1.818,5.455 c0.765,1.515,1.715,2.871,2.847,4.067s2.313,2.169,3.541,2.919c1.228,0.751,2.616,1.396,4.163,1.938 c1.547,0.543,3.014,0.957,4.402,1.245c1.388,0.287,2.911,0.511,4.57,0.67c-2.616,1.787-3.924,4.626-3.924,8.517v7.487 c-1.445-0.43-2.869-0.938-4.268-1.53c-4.899-2.073-9.301-5.041-13.083-8.823c-3.782-3.782-6.75-8.184-8.823-13.083 C9.934,60.948,8.847,55.56,8.847,50s1.087-10.948,3.231-16.016c2.073-4.899,5.041-9.301,8.823-13.083s8.184-6.75,13.083-8.823 C39.052,9.934,44.44,8.847,50,8.847s10.948,1.087,16.016,3.231c4.9,2.073,9.301,5.041,13.083,8.823 c3.782,3.782,6.75,8.184,8.823,13.083c2.143,5.069,3.23,10.457,3.23,16.016s-1.087,10.948-3.231,16.016 C85.848,70.915,82.88,75.317,79.099,79.099L79.099,79.099z"></path>
+                  </svg>
+            </a></li>
+             
+            
+            <li><a href="mailto:arthurchiao@hotmail.com">
+                  <svg id="mail" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M25.5,25.5h49 c0.874,0,1.723,0.188,2.502,0.542L50,57.544L22.998,26.041C23.777,25.687,24.626,25.499,25.5,25.5L25.5,25.5z M19.375,68.375v-36.75 c0-0.128,0.005-0.256,0.014-0.383l17.96,20.953L19.587,69.958C19.448,69.447,19.376,68.916,19.375,68.375L19.375,68.375z M74.5,74.5 h-49c-0.541,0-1.072-0.073-1.583-0.212l17.429-17.429L50,66.956l8.653-10.096l17.429,17.429C75.572,74.427,75.041,74.5,74.5,74.5 L74.5,74.5z M80.625,68.375c0,0.541-0.073,1.072-0.211,1.583L62.652,52.195l17.96-20.953c0.008,0.127,0.014,0.255,0.014,0.383 L80.625,68.375L80.625,68.375z"></path>
+                  </svg>
+            </a></li>
+            
+         </ul>
+      </div>
+   </div>
+</div><!-- end .footer -->
+
+   <!-- Add jQuery and other scripts -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src=""><\/script>')</script>
+<script src="/assets/js/dropcap.min.js"></script>
+<script src="/assets/js/responsive-nav.min.js"></script>
+<script src="/assets/js/scripts.js"></script>
+
+
+</body>
+
+</html>

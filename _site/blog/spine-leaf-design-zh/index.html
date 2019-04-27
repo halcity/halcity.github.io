@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8" <![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9" <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+       })(window,document,'script','dataLayer','GTM-WP54B9K');</script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>[译] 数据中心网络：Spine-Leaf 架构设计综述</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+    <!-- Come and get me RSS readers -->
+    <link rel="alternate" type="application/rss+xml" title="ArthurChiao's Blog" href="http://0.0.0.0:4000/feed.xml" />
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <!--[if IE 8]><link rel="stylesheet" href="/assets/css/ie.css"><![endif]-->
+    <link rel="canonical" href="http://0.0.0.0:4000/blog/spine-leaf-design-zh/">
+
+    <!-- Modernizr -->
+    <script src="/assets/js/modernizr.custom.15390.js" type="text/javascript"></script>
+
+    
+</head>
+
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WP54B9K"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+    <div class="header">
+     <div class="container">
+         <h1 class="logo"><a href="/">ArthurChiao's Blog</a></h1>
+         <nav class="nav-collapse">
+             <ul class="noList">
+                 
+                   
+                   
+                   <li class="element first  ">
+                     <a href="/index.html">Home</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles">Articles</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles-zh">Articles (中文)</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/categories">Categories</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   last">
+                     <a href="/about">About</a>
+                   </li> 
+                 
+                 <!-- <li> <a href="https://github.com/arthurchiao/reading" target="_blank">Reading</a></li> -->
+                 <!-- <li> <a href="https://github.com/arthurchiao/" target="_blank">GitHub</a></li> -->
+             </ul>
+         </nav>
+     </div>
+ </div><!-- end .header -->
+
+
+   <div class="content">
+      <div class="container">
+         <div class="post">
+  
+  <h1 class="postTitle">[译] 数据中心网络：Spine-Leaf 架构设计综述</h1>
+  <p class="meta">2019-03-06 | <span class="time">17</span> Minute Read</p>
+
+  
+  
+  <h3 id="译者序">译者序</h3>
+
+<p>本文内容翻译自 Cisco 的白皮书 <a href="https://www.cisco.com/c/en/us/products/collateral/switches/nexus-7000-series-switches/white-paper-c11-737022.pdf"><strong><em>Cisco Data Center Spine-and-Leaf Architecture:
+Design
+Overview</em></strong></a>
+（2016），翻译非逐字逐句，请酌情参考。</p>
+
+<p>搜索 spine-leaf 资料时看到这篇非常棒的文档，故通过翻译的方式做个笔
+记顺便加深理解（不知是否有没有中文版）。<strong>本文翻译仅供个人学习交流，无任何商业目
+的，如有侵权将及时删除</strong>。</p>
+
+<p>另外，发现思科、华为、华三等厂商的官网上都有大量的优秀文档，其最终目的虽然是推介
+产品，但其中关于基础设施的内容大部分都是厂商无关的，可以作为很好的学习材料
+。</p>
+
+<p><strong>由于译者水平有限，本文不免存在遗漏或错误之处。如有疑问，请查阅原文。</strong> 
+优秀的英文技术文档用词都比较简单直接，推荐有需要的读者阅读原文。</p>
+
+<p>以下是译文。</p>
+
+<hr />
+
+<h2 id="1-数据中心演进">1 数据中心演进</h2>
+
+<p>数据中心是现代软件技术的基石，在扩展企业能力的过程中扮演着关键角色。传统的数据中
+心使用三层架构（three-tier architecture），根据物理位置将服务器划分为不同 pod，
+如图 1 所示。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/1-3-tier-arch.PNG" width="60%" height="60%" /></p>
+<p align="center">图 1 传统三层（Three-Tier）数据中心设计</p>
+
+<p>这种架构由<strong>核心路由器</strong>、<strong>聚合路由器</strong>（有时叫分发路由器，distribution routers
+）和<strong>接入交换机</strong>组成。在接入交换机和聚合路由器之间运行生成树协议（Spanning
+Tree Protocol，STP），以保证网络的二层部分（L2）没有环路。STP 有许多好处：简单，
+即插即用（plug-and-play），只需很少配置。<strong>每个 pod 内的机器都属于同一个 VLAN，
+因此服务器无需修改 IP 地址和网关就可以在 pod 内部任意迁移位置</strong>。但是，STP 无法
+使用并行转发路径（parallel forwarding path），它永远会禁用 VLAN 内的冗余路径。</p>
+
+<p>2010 年，Cisco 提出了 virtual-port-channel (vPC) 技术来解决 STP 的限制。
+vPC 解放了被 STP 禁用的端口，提供接入交换机到汇聚路由器之间的 active-active 上行链路，
+充分利用可用的带宽，如图 2 所示。使用 vPC 技术时，STP 会作为备用机制（
+fail-safe mechanism）。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/2-using-vPC.PNG" width="60%" height="60%" /></p>
+<p align="center">图 2 使用 vPC 技术的数据中心设计</p>
+
+<p>从 2003 年开始，随着虚拟化技术的引入，原来三层（three-tier）数据中心中，<strong>在二层（
+L2）以 pod 形式做了隔离</strong>的计算、网络和存储资源，现在都可以被池化（pooled）。这
+种革命性的技术产生了<strong>从接入层到核心层的大二层域</strong>（larger L2 domain）的需求，如
+图3 所示
+。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/3-extended-L3-domain.PNG" width="60%" height="60%" /></p>
+<p align="center">图 3 扩展的 L3 域的数据中心设计</p>
+
+<p>随着 L2 segment（二层网络段，例如 VLAN 划分的二层网络，译者注）被扩展到所有 pod
+，数据中心的管理员可以创建一个集中式的、更加灵活的、能够按需分配的资源池。物理服
+务器被虚拟化为许多虚拟服务器（VM），无需修改运维参数就可以在物理服务器之间自由漂
+移。</p>
+
+<p><strong>虚拟机的引入，使得应用的部署方式越来越分布式，导致东西向流量（
+east-west-traffic）越来越大</strong>。这些流量需要被高效地处理，并且还要保证低的、可预测的延迟。
+然而，vPC 只能提供两个并行上行链路，因此三层数据中心架构中的<strong>带宽成为了瓶颈</strong>。
+三层架构的另一个问题是<strong>服务器到服务器延迟（server-to-server latency）随着流量路
+径的不同而不同</strong>。</p>
+
+<p>针对以上问题，提出了一种新的数据中心设计，称作<strong>基于 Clos 网络的 Spine-and-Leaf 架
+构</strong>（Clos network-based Spine-and-Leaf architecture）。事实已经证明，这种架构可
+以提供高带宽、低延迟、非阻塞的服务器到服务器连接。</p>
+
+<h2 id="2-spine-leaf-架构">2 Spine-Leaf 架构</h2>
+
+<p>图 4 是一个典型的两级 Spine-and-Leaf 拓扑。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/4-spine-leaf.PNG" width="60%" height="60%" /></p>
+<p align="center">图 4 典型的 Spine-and-Leaf 拓扑</p>
+
+<p>在以上两级 Clos 架构中，<strong>每个低层级的交换机（leaf）都会连接到每个高层级的交换机
+（spine），形成一个 full-mesh 拓扑</strong>。leaf 层由接入交换机组成，用于连接服务器等
+设备。spine 层是网络的骨干（backbone），负责将所有的 leaf 连接起来。
+fabric 中的每个 leaf 都会连接到每个 spine，如果一个 spine 挂了，数据中心的吞吐性
+能只会有轻微的下降（slightly degrade）。</p>
+
+<p>如果某个链路被打满了，扩容过程也很直接：添加一个 spine 交换机就可以扩展每个 leaf
+的上行链路，增大了 leaf 和 spine 之间的带宽，缓解了链路被打爆的问题。如果接入层
+的端口数量成为了瓶颈，那就直接添加一个新的 leaf，然后将其连接到每个 spine 并做相
+应的配置即可。这种易于扩展（ease of expansion）的特性优化了 IT 部门扩展网络的过
+程。<strong>leaf 层的接入端口和上行链路都没有瓶颈时，这个架构就实现了无阻塞</strong>（nonblocking）。</p>
+
+<p><strong>在 Spine-and-Leaf 架构中，任意一个服务器到另一个服务器的连接，都会经过相同数量
+的设备（除非这两个服务器在同一 leaf 下面），这保证了延迟是可预测的</strong>，因为一个包
+只需要经过一个 spine 和另一个 leaf 就可以到达目的端。</p>
+
+<h2 id="3-overlay-网络">3 Overlay 网络</h2>
+
+<p>现代虚拟化数据中心的网络要加速应用部署和支持 DevOps，必须满足特定的前提
+条件。例如，需要支持扩展转发表、扩展网段、L2 segment
+extension、虚拟设备漂移（mobility）、转发路径优化、共享物理基础设施上的网络虚拟
+化和多租户等等。</p>
+
+<p>虽然 overlay 的概念并不是最近才提出的，但因为它可以解决以上提到的问题，因此近几
+年这个概念又火了起来。最近专门针对数据中心提出的新的帧封装格式（encapsulation
+frame format）更是为这个势头添了一把火。这些格式包括：</p>
+
+<ul>
+  <li><strong>VXLAN</strong>：Virtual Extensible LAN</li>
+  <li><strong>NVGRE</strong>: Network Virtualization Using Generic Routing Encapsulation</li>
+  <li><strong>TRILL</strong>: Transparent Interconnection of Lots of Links</li>
+  <li><strong>LISP</strong>:  Location/Identifier Separation Protocol</li>
+</ul>
+
+<p>overlay 网络是共享底层网络（underlay network）的节点之间互连形成的虚拟网络，这使
+得在不修改底层（underlay）网络的情况下，可以部署对网络拓扑有特定要求的应用，如图
+5 所示。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/5-overlay-net.PNG" width="60%" height="60%" /></p>
+<p align="center">图 5 网络 Overlay 概念</p>
+
+<p>overlay 虚拟化带来的好处包括：</p>
+
+<ul>
+  <li><strong>优化的设备功能</strong>：overlay 网络使得可以根据设备在网络中的位置不同而对设备进行
+分类（和定制）。edge 或 leaf 设备可以根据终端状态信息和规模优化它的功能和相关
+的协议；core 或 spine 设备可以根据链路状态优化它的功能和协议，以及针对快速收敛
+进行优化。</li>
+  <li><strong>fabric 的扩展性和灵活性</strong>：overlay 技术使得可以在 overlay 边界设备上进行网络
+的扩展。当在 fabric 边界使用 overlay 时，spine 或 core 设备就无
+需向自己的转发表中添加终端主机的信息（例如，如果在宿主机内进行 overlay 的封
+装和解封装，那 overlay 边界就是在宿主机内部，译者注）。</li>
+  <li><strong>可重叠的寻址</strong>：数据中心中使用的大部分 overlay 技术都支持虚拟网络 ID，用来唯
+一地对每个私有网络进行范围限定和识别（scope and identify）。这种限定使得不同租
+户的 MAC 和 IP 地址可以重叠（overlapping）。overlay 的封装使得租户地址空间和
+underlay 地址空间的管理分开。</li>
+</ul>
+
+<p>本文档将介绍 Cisco 过去几年和当前提供的、以及不远的将来应该会提供的几种
+Spine-and-Leaf 架构设计，这些设计都是为了解决现代虚拟化数据中心中 fabric 面临的
+需求：</p>
+
+<ul>
+  <li>Cisco® FabricPath spine-and-leaf network</li>
+  <li>Cisco VXLAN flood-and-learn spine-and-leaf network</li>
+  <li>Cisco VXLAN Multiprotocol Border Gateway Protocol (MP-BGP) Ethernet Virtual Private Network (EVPN) spine-and-leaf network</li>
+  <li>Cisco Massively Scalable Data Center (MSDC) Layer 3 spine-and-leaf network</li>
+</ul>
+
+<p>下面的几章将围绕写作本文时的一些最重要技术组件、通用设计和设计考虑（例如 L3 网关）进行讨论。</p>
+
+<p>最重要的技术组件包括：</p>
+
+<ol>
+  <li>封装</li>
+  <li>end-host 检查和分发（end-host detection and distribution）</li>
+  <li>广播</li>
+  <li>未知单播（unknown unicast）</li>
+  <li>组播流量转发</li>
+  <li>underlay 和 overlay 控制平面</li>
+  <li>多租户支持</li>
+</ol>
+
+<h2 id="4-cicso-fabricpath-spine-and-leaf-网络">4 Cicso FabricPath Spine-and-Leaf 网络</h2>
+
+<p>Cisco 在 2010 年推出了 FabricPath 技术。FabricPath 提供的新特性和设计选项使得网
+络管理员可以创建<strong>以太网 fabrics</strong>，后者可以提高带宽可用性、提供设计灵活性，以及
+简化和降低网络和应用的部署及运维成本。典型的 FabricPath 都是使用 Spine-and-Leaf 架构。</p>
+
+<p>FabricPath 继承了很多传统 L2 和 L3 技术中的优良特性，它保留了 L2 环境易于配置和
+即插即用的部署模型，并引入了一个称为 <strong>FabricPath IS-IS</strong>（Intermediate System
+to Intermediate System）的控制平面协议。在 FabricPath 网络中，给定任意一个
+FabricPath 交换机作为目的端，<strong>最短路径优先</strong>（shortest path first, SPF）路由协
+议将用于判断可达性以及寻找最优路径。</p>
+
+<p>这种设计的好处：</p>
+
+<ol>
+  <li>更稳定、更易扩展</li>
+  <li>快速收敛</li>
+  <li>像典型的 L3 路由环境一样<strong>使用多个并行路径（multiple parallel paths）的能力</strong></li>
+</ol>
+
+<h3 id="41-封装格式和标准兼容">4.1 封装格式和标准兼容</h3>
+
+<p>FabricPath spine-and-leaf 网络是 Cisco 的专利，但基于 TRILL 标准。它使用
+FabricPath <strong>MAC-in-MAC</strong> 帧封装。</p>
+
+<h4 id="411-underlay-网络">4.1.1 Underlay 网络</h4>
+
+<p>数据平面使用 L2 FabricPath MAC-in-MAC 封装，控制面在 underlay 网络中使用
+FabricPath IS-IS。每个 FabricPath 交换机都有一个 FabricPath switch ID。<strong>Fabric
+IS-IS 控制平面构建可达性信息</strong>（reachability information），即 FabricPath 交换机
+如何连接到其它FabricPath 交换机。</p>
+
+<h4 id="412-overlay-网络">4.1.2 Overlay 网络</h4>
+
+<p><strong>FabricPath 没有 overlay 控制平面。overlay 网络中的 end-host 信息是通过带会话学
+习功能的“泛洪-学习”机制学习的</strong>（flood-and-learn mechanism with conversational
+learning）。</p>
+
+<h3 id="42-广播和未知单播流量">4.2 广播和未知单播流量</h3>
+
+<h3 id="43-主机检测和可达性">4.3 主机检测和可达性</h3>
+
+<h3 id="44-组播流量">4.4 组播流量</h3>
+
+<h3 id="45-l3-路由功能">4.5 L3 路由功能</h3>
+
+<h4 id="451-在-spine-层做内部和外部路由">4.5.1 在 Spine 层做内部和外部路由</h4>
+
+<h4 id="452-在-border-leaf-做内部和外部路由">4.5.2 在 Border Leaf 做内部和外部路由</h4>
+
+<h3 id="46-多租户">4.6 多租户</h3>
+
+<h3 id="47-总结">4.7 总结</h3>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/table-1-fabricpath.PNG" width="95%" height="95%" /></p>
+<p align="center">表 1 Cisco FabricPath 网络特性</p>
+
+<h2 id="5-cicso-vxlan-flood-and-learn-spine-leaf-网络">5 Cicso VXLAN Flood-and-Learn Spine-Leaf 网络</h2>
+
+<p>VXLAN 是网络虚拟化 overlay 技术之一，有一些自己的优势。它是一个工业标准（
+industry-standard）协议，使用 underlay IP 网络。它将 L2 网络进行扩展，在 L3
+基础设施之上构建出一个 L2 overlay 逻辑网络。它将以太帧封装到 UDP IP 包里面，通
+过underlay 网络以正常的 IP 路由和转发机制发送到对端 VTEP（VXLAN tunnel endpoint
+）。</p>
+
+<p>Cisco 从 2014 年开始，陆续在多个 Nexus 系列（例如 Nexus 5600、7000、9000系列）交
+换机上支持 VXLAN flood-and-learn spine-and-leaf 技术。本节介绍这些硬件交换机
+的 Cisco VXLAN flood-and-learn 特性。</p>
+
+<h3 id="51-封装格式和标准兼容">5.1 封装格式和标准兼容</h3>
+
+<p>Cisco VXLAN flood-and-learn 技术兼容 IETF VXLAN 标准（RFC 7348），后者定义了<strong>无控
+制平面的基于组播的泛洪-学习 VXLAN</strong>（multicast-based flood-and-learn VXLAN without
+a control plane）。原始的 L2 帧封装一个 VXLAN 头，然后放到 UDP IP 包通过 IP 网络
+进行传输。</p>
+
+<h4 id="511-underlay-网络">5.1.1 Underlay 网络</h4>
+
+<p>使用 L3 IP 网络作为 underlay 网络。</p>
+
+<p>使用 underlay IP multicast 减少 VXLAN 网段的主机之间泛洪的范围。</p>
+
+<p>每个 VXLAN segment 都有一个 VNI（VXLAN network ID），<strong>VNI 会映射到传输网络中的一
+个 IP 多播组</strong>。每个 VTEP 设备独立配置多播组，参与 PIM 路由。基于参与的 VTEP 的位
+置，会在传输网络中形成这个组对应的多播分发树（multicast distribution tree）。</p>
+
+<p><strong>这种方案需要在 underlay 网络中开启多播功能，而一些企业可能
+并不想在他们的数据中心或 WAN 中开启组播</strong>。</p>
+
+<p>Cisco 9000 特色介绍：略（TODO）。</p>
+
+<h4 id="512-overlay-网络">5.1.2 Overlay 网络</h4>
+
+<p>这种设计<strong>没有 overlay 网络的控制平面</strong>。</p>
+
+<p>它在 L3 IP underlay 网络之上构建了一层 L2 overlay 网络，通过 VTEP 隧道机制传输 L2
+包。<strong>overlay 网络使用 flood-and-learn 语义</strong>，如图 11 所示。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/11-vxlan-overlay.PNG" width="60%" height="60%" /></p>
+<p align="center">图 11 VXLAN overlay 网络</p>
+
+<h3 id="52-广播和未知单播流量">5.2 广播和未知单播流量</h3>
+
+<p>使用 underlay IP PIM 或 ingress replication 发送广播和未知的单播（unknown
+unicast）流量。注意 ingress replication 只有 Cisco Nexus 9000 系列交换机才支持。</p>
+
+<h3 id="53-主机检测和可达性">5.3 主机检测和可达性</h3>
+
+<p>依赖初始的数据平面泛洪，每个 VXLAN segment 的 VTEP 能发现其他主机，学习远端主机
+的 MAC 和 MAC-to-VTEP 映射。MAC-to-VTEP 映射完成后，VTEP 接下来就通过单播转发
+VXLAN 流量。</p>
+
+<h3 id="54-组播流量">5.4 组播流量</h3>
+
+<p>通过 underlay IP PIM 或 ingress replication 可以支持 overlay 租户的 <strong>L2 组播</strong>。</p>
+
+<p><strong>L3 组播</strong>流量通过 L3 基于 PIM 的组播路由（L3 PIM-based multicast routing）实现。</p>
+
+<p>略。</p>
+
+<h3 id="55-l3-路由功能">5.5 L3 路由功能</h3>
+
+<p>在一个传统的 VLAN 环境中，很多情况下需要 VXLAN segment 和 VLAN segment 之间的路由。
+典型的 VXLAN flood-and-learn spine-and-leaf 网络设计中，leaf ToR (top-of-rack)
+交换机会作为 VTEP 设备，在机柜（rack）之间扩展 L2 segment。</p>
+
+<p>VXLAN 和 VLAN 之间的 二层流量转发时，VTEP 作为 L2 VXLAN 网关；三层流量路
+由时，还需要开启某些 VTEP 的 L3 VXLAN 网关功能。常见的设计有：内部和外部路由在
+spine 层，或内部和外部路由在 leaf 层。这两种设计都是集中式路由（centralized
+routing），即：三层的内部和外部路由功能都集中在特定的交换机上做。</p>
+
+<h4 id="551-在-spine-层做内部和外部路由">5.5.1 在 Spine 层做内部和外部路由</h4>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/12-routing-on-spine.PNG" width="60%" height="60%" /></p>
+<p align="center">图 12 在 spine 上做内部和外部路由</p>
+
+<p>图 12 是在 spine 层做内部和外部路由的示意图，<strong>leaf ToR VTEP 交换机作为 L2 VXLAN
+网关</strong>，在 underlay 网络上传输 L2 segment。spine 有两功能：</p>
+
+<ol>
+  <li>作为 underlay 网络的一部分，传输 VXLAN 封装的包</li>
+  <li>做内部的 inter-VXLAN 路由，以及外部路由</li>
+</ol>
+
+<p>内部和外部路由流量需要从 VTEP 经过 underlay 的一跳到达 spine，然后被 spine 路由。</p>
+
+<p>注意，在使用 HSRP（Hot-Standby Router Protocol）和 vPC 的配置下，VXLAN 之间
+active-active 网关的最大数量是两个。另外，<strong>spine L3 VXLAN 网关会学习主机 MAC
+地址</strong>，所以需要考虑 MAC 地址的规模，以免超出硬件的限制。</p>
+
+<h4 id="552-在-border-leaf-做内部和外部路由">5.5.2 在 Border Leaf 做内部和外部路由</h4>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/13-routing-on-border-leaf.PNG" width="60%" height="60%" /></p>
+<p align="center">图 13 在 Border Leaf 上做内部和外部路由</p>
+
+<p>在 Border Leaf 上做内部和外部路由如图 13。</p>
+
+<p><strong>leaf ToR VTEP 交换机作为 L2 VXLAN 网关</strong>，在 underlay 网络上传输 L2 segment。<strong>spine
+是 underlay 网络的一部分，它并不学习 overlay 主机的 MAC 地址</strong>。<strong>border leaf 路由器
+承担 L3 VXLAN 网关功能</strong>，负责 inter-VXLAN 路由和外部路由。</p>
+
+<p>内部和外部路由流量需要<strong>从 VTEP 经过 underlay 的两跳</strong>（先到 spine 再到 border
+leaf）到达 border leaf，然后才能被路由到外部网络。</p>
+
+<p>同样，在使用 HSRP 和 vPC 的配置下，inter-VXLAN active-active 网关的最大数量是两
+个。另外，<strong>border leaf L3 VXLAN 网关会学习主机 MAC地址</strong>，所以需要考虑 MAC 地
+址的规模，以免超出硬件的限制。</p>
+
+<h3 id="56-多租户">5.6 多租户</h3>
+
+<h3 id="57-总结">5.7 总结</h3>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/table-2-vxlan.PNG" width="95%" height="95%" /></p>
+<p align="center">表 2 Cisco VXLAN flood-and-learn 网络特性</p>
+
+<h2 id="6-cicso-vxlan-mp-bgp-evpn-spine-leaf-网络">6 Cicso VXLAN MP-BGP EVPN Spine-Leaf 网络</h2>
+
+<p>RFC 7348 定义的 VXLAN flood-and-learn 模型中，<strong>end-host（终端主机）学习</strong>和
+<strong>VTEP 发现</strong>都是基于数据平面，并没有控制平面来在 VTEP 之间分发 end-host 可达性
+信息。为了克服这种方案的一些限制，<strong>Cisco VXLAN MP-BGP EVPN Spine-and-Leaf 架构</strong>使
+用了 <strong>MP-BGP EVPN 作为 VXLAN 的控制平面</strong>。</p>
+
+<p>这种设计使得<strong>控制平面和数据平面分离</strong>，并且为 overlay 网络的 L2/L3 转发提供了统
+一的控制平面。本节介绍这种方案中 Cisco 硬件交换机（例如 Cisco Nexus 5600
+、7000、9000 系列）上的应用。</p>
+
+<h3 id="61-封装格式和标准兼容">6.1 封装格式和标准兼容</h3>
+
+<p>使用 VXLAN 封装，原始 L2 帧加一层 VXLAN 头然后封装到 UDP-IP 包进行传输。</p>
+
+<p>与 IETF RFC 7348 和draft-ietf-bess-evpn-overlay 标准是兼容的。</p>
+
+<h4 id="611-underlay-网络">6.1.1 Underlay 网络</h4>
+
+<p>使用 L3 IP 网络作为 underlay 网络。</p>
+
+<h4 id="612-overlay-网络">6.1.2 Overlay 网络</h4>
+
+<p>使用 MP-BGP EVPN 作为 VXLAN overlay 网络的控制平面协议。</p>
+
+<h3 id="62-广播和未知单播流量">6.2 广播和未知单播流量</h3>
+
+<p>使用 underlay IP PIM 或 ingress replication 特性发送<strong>广播</strong>和<strong>未知单播</strong>流量。</p>
+
+<p>underlay 开启 IP 组播的情况下，每个 VXLAN segment，或者 VNI，都会映射到underlay
+的一个 IP 组播组（multicast group）。每个 VTEP 设备独立配置组播组，参与PIM 路由
+。基于参与的 VTEP 的位置，会在传输网络中形成这个组对应的多播分发树（multicast
+distribution tree）。</p>
+
+<p>如果使用 ingress replication 特性，那 underlay 就无需组播了。VTEP 之间通过 VTEP
+的 IP 地址发送广播和未知单播流量。这些 IP 地址是通过 BGP EVPN 控制平面在 VTEP 之
+间交换的，或者通过静态配置。</p>
+
+<h3 id="63-主机检测和可达性">6.3 主机检测和可达性</h3>
+
+<p>MP-BGP EVPN 控制平面提供内置的路由和转发（功能），它会对 VXLAN overlay 网络内的
+end-host 的 L2/L3 可达性信息进行分发（distribution）。</p>
+
+<p><strong>每个 VTEP 从与它相连的主机中自动学习 MAC 地址（通过传统的 MAC 地址学习）和 IP
+地址信息（基于 ARP snooping），然后通过控制平面进行分发</strong>，因此远端主机的信息是
+控制平面同步过来的。这种方式避免了通过网络泛洪学习远端主机信息的问题，为
+end-host 可达性信息的分发提供了更好的控制。</p>
+
+<h3 id="64-组播流量">6.4 组播流量</h3>
+
+<p>使用 underlay IP 组播或 ingress replication 特性，可以支持 overlay 租户的 L2 组
+播。</p>
+
+<p>通过外部路由器上 L3 PIM-based multicast 路由，可以支持 overlay 租户的 L3 组播。</p>
+
+<h3 id="65-l3-路由功能">6.5 L3 路由功能</h3>
+
+<p>L3 路由需要解决两个问题：</p>
+
+<ol>
+  <li><strong>VXLAN 网络内部</strong>的路由：使用<strong>分布式任播网关</strong>（distributed anycast gateways）解决</li>
+  <li><strong>VXLAN 网络和外部网络</strong>（包括园区网、WAN 和互联网）的路由：在几个特定交换机上实现</li>
+</ol>
+
+<h4 id="651-分布式任播网关解决-vxlan-网络内部路由">6.5.1 分布式任播网关：解决 VXLAN 网络内部路由</h4>
+
+<p>在 MP-BGP EVPN 网络中，一个 VNI 内的任意一个 VTEP 都可以作为它所在子网的分布式
+任播网关，对它们配置相同的虚拟网关 IP 和虚拟网关 MAC 即可，如图 16 所示。</p>
+
+<p>EVPN 的这种任播网关功能，使得 VNI 内的主机可以将本地 VTEP 作为其网关，将跨网段的
+流量发送到 VTEP 设备。这使得 VXLAN 网络中从主机出来的北向流量可以达到最优转发。
+分布式任播网关还给 overlay 网络带来了透明主机漂移（transparent host mobility）的
+好处。因为一个 VNI 的所有 VTEP 设备上的网关 IP 和 MAC 地址都是相同的，当一个主机
+从一个 VTEP 移动到另一个 VTEP 后，它无需发送 ARP 请求来重新学习网关的 MAC 地址。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/16-distributed-anycast-gw.PNG" width="70%" height="70%" /></p>
+<p align="center">图 16 内部路由的分布式任播网关</p>
+
+<h4 id="652-在-border-leaf-做外部路由">6.5.2 在 Border Leaf 做外部路由</h4>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/17-external-routing-at-border-leaf.PNG" width="70%" height="70%" /></p>
+<p align="center">图 17 Border Leaf 做外部路由的设计</p>
+
+<p>图 17 是典型的通过一对 border leaf 交换机连接到外部路由设备的设计。Border leaf
+在 VXLAN 网络侧运行 MP-BGP EVPN，和网络内的 VTEP 交换 EVPN 路由。同时，它在租户
+VRF 实例中运行普通的 IPv4 或 IPv6 单播路由协议和外部路由设备交换路由信息。路由协
+议可以是常规 eBGP，或任何内部网关协议（IGP）。Border leaf 将学习来的外部路由
+以 EVPN 路由的形式通告到 EVPN 域，因此 VTEP 就能学习到外部路由，然后就可以发送出
+VXLAN 网络的流量。</p>
+
+<p>也可以配置 border leaf 将学习到的 L2 VPN EVPN 地址族到 IPv4 或 IPv6 单播地址族的
+路由，通告到外部路由。在这种设计中，租户流量需要经过 underlay 的两跳（VTEP 到
+spine 到 border leaf）到达外部网络。然而，这种情况下 spine 只需要运行 BGP-EVPN 控
+制平面和 IP 路由，无需支持 VXLAN VTEP 功能（即，无需支持 VXLAN 的封装和解封装，
+译者注）。</p>
+
+<h4 id="653-在-border-spine-做外部路由">6.5.3 在 Border Spine 做外部路由</h4>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/18-external-routing-with-border-spine.PNG" width="70%" height="70%" /></p>
+<p align="center">图 18 Border Spine 做外部路由的设计</p>
+
+<p>图 18 是典型的通过一对 border spine 交换机连接到外部路由设备的设计。这种设计中，
+spine 需要支持 VXLAN 路由。spine 在 VXLAN 网络侧运行 MP-BGP EVPN，和 VTEP 交换
+EVPN 路由信息。同时，它在租户
+VRF 实例中运行普通的 IPv4 或 IPv6 单播路由协议和外部路由设备交换路由信息。路由协
+议可以是常规 eBGP，或任何内部网关协议（IGP）协议。spine 将学习来的外部路由
+以 EVPN 路由的形式通告到 EVPN 域，因此 VTEP 就能学习到外部路由，然后就可以发送出
+VXLAN 网络的流量。</p>
+
+<p>也可以配置 spine 将学习到的 L2 VPN EVPN 地址族到 IPv4 或 IPv6 单播地址族的
+路由，通告到外部路由。在这种设计中，租户流量只需经过 underlay 的一跳（VTEP 到
+spine）就可以到达外部网络。然而，这种情况下 spine 需要运行 BGP-EVPN
+控制平面和 IP 路由，以及支持 VXLAN VTEP 功能。</p>
+
+<h3 id="66-多租户">6.6 多租户</h3>
+
+<p>作为 MP-BGP 的扩展，MP-BGP EVPN 继承了 VPN 通过 VRF 实现的对多租户的支持。</p>
+
+<p>在 MP-BGP EVPN 中，多个租户可以共存，它们共享同一个 IP 传输网络（underlay），而
+在 VXLAN overlay 网络中拥有独立的 VPN，入图 19 所示。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/19-mp-bgp-evpn-multi-tenancy.PNG" width="70%" height="70%" /></p>
+<p align="center">图 19 Cisco VXLAN MP-BGP EVPN Spine-and-Leaf 网络的多租户</p>
+
+<p>在 VXLAN MP-BGP EVPN spine-and-leaf 网络中，<strong>VNI 定义了二层域</strong>，不允许 L2 流量跨越
+VNI 边界。类似地，<strong>VXLAN 租户的三层 segment 是通过 VRF 技术隔离的</strong>，通过将不同 VNI
+映射到不同的 VRF 实例来隔离租户的三层网络。每个租户都有自己的 VRF 路由实例。同一
+租户的 VNI 的不同子网，都属于同一个 L3 VRF 实例，这个 VRF 将租户的三层路由与其他
+租户的路由隔离开来。</p>
+
+<h3 id="67-总结">6.7 总结</h3>
+
+<p>控制平面学习到 end-host 的 L2 和 L3 可达性信息（MAC 和 IP），然后通过 EVPN 地址
+族分发这些信息，因此提供了 VXLAN overlay 网络的桥接和路由功能。这种方案减少了网
+络泛洪，以及本地 VTEP 上的 ARP suppression。三层内部流量直接通过 ToR 上的分布式
+网关路由，扩展性（scale-out）比较好。</p>
+
+<p align="center"><img src="/assets/img/spine-leaf-design/table-3-mp-bgp-evpn.PNG" width="95%" height="95%" /></p>
+<p align="center">表 3 Cisco VXLAN MP BGP EVPN 网络特性</p>
+
+<h2 id="7-cicso-msdc-layer-3-spine-leaf-网络">7 Cicso MSDC Layer 3 Spine-Leaf 网络</h2>
+
+<h2 id="8-数据中心-fabric-管理和自动化">8 数据中心 Fabric 管理和自动化</h2>
+
+<h2 id="9-总结">9 总结</h2>
+
+<h2 id="10-更多信息">10 更多信息</h2>
+
+
+
+  <!-- POST NAVIGATION -->
+  <div class="postNav clearfix">
+     
+      <a class="prev" href="/blog/hierarchical-network-design-zh/"><span>&laquo;&nbsp;[译] 数据中心网络：分层网络设计综述</span>
+      
+    </a>
+      
+      
+      <a class="next" href="/blog/are-you-a-software-architect-zh/"><span>[译] 你是一名软件架构师吗？&nbsp;&raquo;</span>
+       
+      </a>
+     
+  </div>
+</div>
+
+
+         
+
+      </div>
+   </div><!-- end .content -->
+
+   <div class="footer">
+   <div class="container">
+      <p class="copy">&copy; 2016-2019
+      <a href="https://arthurchiao.github.io">Arthur Chiao</a>, Powered by
+      <a href="http://jekyllrb.com">Jekyll </a>, Theme originated from
+      <a href="https://github.com/brianmaierjr/long-haul"> Long Haul.</a>
+
+      <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+      <span id="busuanzi_container_site_pv"> Site visits:
+          <span id="busuanzi_value_site_pv"></span>, powered by<a href="http://busuanzi.ibruce.info/"> busuanzi</a>
+      </span>
+
+      </p>
+
+      <div class="footer-links"> 
+         <ul class="noList"> 
+            
+            <li><a href="https://www.facebook.com/profile.php?id=100014334455077">
+                  <svg id="facebook-square" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M82.667,1H17.335C8.351,1,1,8.351,1,17.336v65.329c0,8.99,7.351,16.335,16.334,16.335h65.332 C91.652,99.001,99,91.655,99,82.665V17.337C99,8.353,91.652,1.001,82.667,1L82.667,1z M84.318,50H68.375v42.875H50V50h-8.855V35.973 H50v-9.11c0-12.378,5.339-19.739,19.894-19.739h16.772V22.3H72.967c-4.066-0.007-4.57,2.12-4.57,6.078l-0.023,7.594H86.75 l-2.431,14.027V50z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://linkedin.com/in/yanan-zhao-7691317b?trk=hp-identity-photo">
+                  <svg id="linkedin" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M99.001,19.428c-3.606,1.608-7.48,2.695-11.547,3.184c4.15-2.503,7.338-6.466,8.841-11.189 c-3.885,2.318-8.187,4-12.768,4.908c-3.667-3.931-8.893-6.387-14.676-6.387c-11.104,0-20.107,9.054-20.107,20.223 c0,1.585,0.177,3.128,0.52,4.609c-16.71-0.845-31.525-8.895-41.442-21.131C6.092,16.633,5.1,20.107,5.1,23.813 c0,7.017,3.55,13.208,8.945,16.834c-3.296-0.104-6.397-1.014-9.106-2.529c-0.002,0.085-0.002,0.17-0.002,0.255 c0,9.799,6.931,17.972,16.129,19.831c-1.688,0.463-3.463,0.71-5.297,0.71c-1.296,0-2.555-0.127-3.783-0.363 c2.559,8.034,9.984,13.882,18.782,14.045c-6.881,5.424-15.551,8.657-24.971,8.657c-1.623,0-3.223-0.096-4.796-0.282 c8.898,5.738,19.467,9.087,30.82,9.087c36.982,0,57.206-30.817,57.206-57.543c0-0.877-0.02-1.748-0.059-2.617 C92.896,27.045,96.305,23.482,99.001,19.428z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://github.com/ArthurChiao">
+                  <svg id="github" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M79.099,79.099 c-3.782,3.782-8.184,6.75-13.083,8.823c-1.245,0.526-2.509,0.989-3.79,1.387v-7.344c0-3.86-1.324-6.699-3.972-8.517 c1.659-0.16,3.182-0.383,4.57-0.67c1.388-0.287,2.855-0.702,4.402-1.245c1.547-0.543,2.935-1.189,4.163-1.938 c1.228-0.75,2.409-1.723,3.541-2.919s2.082-2.552,2.847-4.067s1.372-3.334,1.818-5.455c0.446-2.121,0.67-4.458,0.67-7.01 c0-4.945-1.611-9.155-4.833-12.633c1.467-3.828,1.308-7.991-0.478-12.489l-1.197-0.143c-0.829-0.096-2.321,0.255-4.474,1.053 c-2.153,0.798-4.57,2.105-7.249,3.924c-3.797-1.053-7.736-1.579-11.82-1.579c-4.115,0-8.039,0.526-11.772,1.579 c-1.69-1.149-3.294-2.097-4.809-2.847c-1.515-0.75-2.727-1.26-3.637-1.532c-0.909-0.271-1.754-0.439-2.536-0.503 c-0.782-0.064-1.284-0.079-1.507-0.048c-0.223,0.031-0.383,0.064-0.478,0.096c-1.787,4.53-1.946,8.694-0.478,12.489 c-3.222,3.477-4.833,7.688-4.833,12.633c0,2.552,0.223,4.889,0.67,7.01c0.447,2.121,1.053,3.94,1.818,5.455 c0.765,1.515,1.715,2.871,2.847,4.067s2.313,2.169,3.541,2.919c1.228,0.751,2.616,1.396,4.163,1.938 c1.547,0.543,3.014,0.957,4.402,1.245c1.388,0.287,2.911,0.511,4.57,0.67c-2.616,1.787-3.924,4.626-3.924,8.517v7.487 c-1.445-0.43-2.869-0.938-4.268-1.53c-4.899-2.073-9.301-5.041-13.083-8.823c-3.782-3.782-6.75-8.184-8.823-13.083 C9.934,60.948,8.847,55.56,8.847,50s1.087-10.948,3.231-16.016c2.073-4.899,5.041-9.301,8.823-13.083s8.184-6.75,13.083-8.823 C39.052,9.934,44.44,8.847,50,8.847s10.948,1.087,16.016,3.231c4.9,2.073,9.301,5.041,13.083,8.823 c3.782,3.782,6.75,8.184,8.823,13.083c2.143,5.069,3.23,10.457,3.23,16.016s-1.087,10.948-3.231,16.016 C85.848,70.915,82.88,75.317,79.099,79.099L79.099,79.099z"></path>
+                  </svg>
+            </a></li>
+             
+            
+            <li><a href="mailto:arthurchiao@hotmail.com">
+                  <svg id="mail" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M25.5,25.5h49 c0.874,0,1.723,0.188,2.502,0.542L50,57.544L22.998,26.041C23.777,25.687,24.626,25.499,25.5,25.5L25.5,25.5z M19.375,68.375v-36.75 c0-0.128,0.005-0.256,0.014-0.383l17.96,20.953L19.587,69.958C19.448,69.447,19.376,68.916,19.375,68.375L19.375,68.375z M74.5,74.5 h-49c-0.541,0-1.072-0.073-1.583-0.212l17.429-17.429L50,66.956l8.653-10.096l17.429,17.429C75.572,74.427,75.041,74.5,74.5,74.5 L74.5,74.5z M80.625,68.375c0,0.541-0.073,1.072-0.211,1.583L62.652,52.195l17.96-20.953c0.008,0.127,0.014,0.255,0.014,0.383 L80.625,68.375L80.625,68.375z"></path>
+                  </svg>
+            </a></li>
+            
+         </ul>
+      </div>
+   </div>
+</div><!-- end .footer -->
+
+   <!-- Add jQuery and other scripts -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src=""><\/script>')</script>
+<script src="/assets/js/dropcap.min.js"></script>
+<script src="/assets/js/responsive-nav.min.js"></script>
+<script src="/assets/js/scripts.js"></script>
+
+
+</body>
+
+</html>

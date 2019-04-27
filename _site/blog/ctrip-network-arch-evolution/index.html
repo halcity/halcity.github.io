@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8" <![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9" <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+       })(window,document,'script','dataLayer','GTM-WP54B9K');</script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>Ctrip Network Architecture Evolution in the Cloud Computing Era</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+    <!-- Come and get me RSS readers -->
+    <link rel="alternate" type="application/rss+xml" title="ArthurChiao's Blog" href="http://0.0.0.0:4000/feed.xml" />
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <!--[if IE 8]><link rel="stylesheet" href="/assets/css/ie.css"><![endif]-->
+    <link rel="canonical" href="http://0.0.0.0:4000/blog/ctrip-network-arch-evolution/">
+
+    <!-- Modernizr -->
+    <script src="/assets/js/modernizr.custom.15390.js" type="text/javascript"></script>
+
+    
+</head>
+
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WP54B9K"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+    <div class="header">
+     <div class="container">
+         <h1 class="logo"><a href="/">ArthurChiao's Blog</a></h1>
+         <nav class="nav-collapse">
+             <ul class="noList">
+                 
+                   
+                   
+                   <li class="element first  ">
+                     <a href="/index.html">Home</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles">Articles</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles-zh">Articles (中文)</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/categories">Categories</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   last">
+                     <a href="/about">About</a>
+                   </li> 
+                 
+                 <!-- <li> <a href="https://github.com/arthurchiao/reading" target="_blank">Reading</a></li> -->
+                 <!-- <li> <a href="https://github.com/arthurchiao/" target="_blank">GitHub</a></li> -->
+             </ul>
+         </nav>
+     </div>
+ </div><!-- end .header -->
+
+
+   <div class="content">
+      <div class="container">
+         <div class="post">
+  
+  <h1 class="postTitle">Ctrip Network Architecture Evolution in the Cloud Computing Era</h1>
+  <p class="meta">2019-04-17 | <span class="time">49</span> Minute Read</p>
+
+  
+  
+  <h3 id="preface">Preface</h3>
+
+<p>This article comes from my talk <strong><em>Ctrip Network Architecture Evolution in the
+Cloud Computing Era</em></strong> at <a href="https://www.bagevent.com/event/GOPS2019-shenzhen">GOPS 2019
+Shenzhen</a> (a tech conference
+in Chinese). The content is gently re-structured to make it more
+ease of reading as a post, and slightly updated to correct some inaccuracies.</p>
+
+<h3 id="about-me">About Me</h3>
+
+<p>I’m currently a senior achitect at Ctrip cloud, and leading the network &amp;
+storage development team. My main focus is on <strong>network virtualization</strong> and
+<strong>distributed storage</strong>.</p>
+
+<hr />
+
+<p>Let’s start.</p>
+
+<p>This post presents Ctrip’s network architecure evolution in the cloud
+computing era. The content is as follows:</p>
+
+<ul>
+  <li>A brief introduction to Ctrip Cloud</li>
+  <li>VLAN-based L2 Network</li>
+  <li>SDN-based Large L2 Network</li>
+  <li>K8S and Hybrid Network</li>
+  <li>Cloud Native Solutions</li>
+</ul>
+
+<h2 id="0-about-ctrip-cloud">0 About Ctrip Cloud</h2>
+
+<p>Ctrip’s cloud computing team started at ~2013.</p>
+
+<p>We started our business by providing compute resources to our internal customers
+based on OpenStack. Since then, we have developed our own baremetal platform,
+and further, deployed container platforms like Mesos and K8S.</p>
+
+<p>In recent years, we have packed all our cloud services into a unified platform,
+we named it CDOS - <strong><em>Ctrip Datacenter Operating System</em></strong>.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/1.jpg" width="40%" height="40%" /></p>
+<p align="center">Fig 1. Ctrip Datacenter Operation System (CDOS)</p>
+
+<p>CDOS manages all our compute, network and storage resources on both private and
+public cloud (from vendors). In the private cloud, we provision VM, BM and container
+instances. In the public cloud, we have integrated public cloud vendors like
+AWS, Tecent cloud, UCloud, etc to provide VM and container instances to our internal
+customers.</p>
+
+<h3 id="network-evolution-timeline">Network Evolution Timeline</h3>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/2.jpg" width="70%" height="70%" /></p>
+<p align="center">Fig 2. Timeline of the Network Architecture Evolution</p>
+
+<p>Fig 2 is a rough timeline of our network evolution.</p>
+
+<p>At 2013, we started building our private cloud based on OpenStack, and we chose
+a simple VLAN-based <strong>L2 network</strong> model. The underlying HW network topolopy was
+traditional hierarchical network model (3-layer network model).</p>
+
+<p>At 2016, we evolved to a SDN-based <strong>large L2 network</strong>, and the underlying HW
+network evolved to Spine-Leaf model.</p>
+
+<p>Starting from 2017, we began to deploy container platforms (mesos, k8s) on both
+private and public cloud. In the private cloud, we extended our SDN
+solution to integration container networks. On the public cloud, we also
+designed our container network solution, and connected the public and private
+cloud.</p>
+
+<p>Now (2019), we are doing some investigations on <strong>cloud native solutions</strong> to
+address the new challenges we are facing.</p>
+
+<p>Let’s dig into those solutions in more detail.</p>
+
+<h2 id="1-vlan-based-l2-network">1 VLAN-based L2 Network</h2>
+
+<p>At 2013, we started building our private cloud based on OpenStack, provisioning
+VM and BM instances to our internal customers.</p>
+
+<h3 id="11-requirements">1.1 Requirements</h3>
+
+<p>The requirements for network were as follows:</p>
+
+<p>First, performance of the virtualized network should not be too bad compared
+with baremetal networks, measuring with metrics such as instance-to-instance
+latency, throughput, etc.</p>
+
+<p>Secondly, it should have some L2 isolations to prevent common L2 problems e.g. flooding.</p>
+
+<p>Thirdly, and this is really important - the <strong>instance IP should be routable</strong>.
+That is to say, we could not utilize any tunnling techniques within the host.</p>
+
+<p>At last, security concerns were less critical at that time. If sacrificing a
+little security could give us a significant performance increase, that would be
+acceptable. As in a private cloud environment, we have other means to ensure
+security.</p>
+
+<h3 id="12-solution-openstack-provider-network-model">1.2 Solution: OpenStack Provider Network Model</h3>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/3.jpg" width="25%" height="25%" /></p>
+<p align="center">Fig 3. OpenStack Provider Network Model</p>
+
+<p>After some investigation, we chose the OpenStack <strong><em>provider network model</em></strong>
+[1], as depicted in Fig 3.</p>
+
+<p>The provider network model has following characteristics:</p>
+
+<ol>
+  <li><strong>L2 forwarding</strong> within host, <strong>L2 forwarding + L3 routing</strong> outside host</li>
+  <li>Tenant gateways configured on HW devices. So this is a <strong>SW + HW solution</strong>,
+rather than a pure SW solution</li>
+  <li>Instance <strong>IP routable</strong></li>
+  <li><strong>High performance</strong>. This comes mainly from two aspects:
+    <ul>
+      <li>No overlay encapsulation/decapsulation</li>
+      <li>Gateways configured on HW device, which has far more better performance
+compared with SW implemented virtual routers (L3 agent) in OpenStack</li>
+    </ul>
+  </li>
+</ol>
+
+<p>Other aspects in our design:</p>
+
+<ol>
+  <li>L2 segmentation: VLAN</li>
+  <li>ML2: OVS</li>
+  <li>L2 Agent：Neutron OVS Agent</li>
+  <li>L3 Agent: NO</li>
+  <li>DHCP: NO</li>
+  <li>Floating IP: NO</li>
+  <li>Security Group：NO</li>
+</ol>
+
+<h3 id="13-hw-network-topology">1.3 HW Network Topology</h3>
+
+<p>The HW network topology in our data center is Fig 4.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/4.png" width="60%" height="60%" /></p>
+<p align="center">Fig 4. Physical Network Topology in the Datacenter</p>
+
+<p>The bottom part are rack rows.  Each blade in the rack had two physical
+NIC, connected to two adjacent ToR for physical HA.</p>
+
+<p>The above part is a typical <strong><em>access - aggregate - core</em></strong> hierarchical network
+model. Aggregate layer communicates with access layer via L2 forwarding, and
+with core layer via L3 routing.</p>
+
+<p>All OpenStack network gateways are configured on core routers. Besides, there
+are HW firewalls connected to core routers to perform some security
+enforcements.</p>
+
+<h3 id="14-host-network-topology">1.4 Host Network Topology</h3>
+
+<p>The virtual network topology within a compute node is shown in Fig 5.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/5.png" width="75%" height="75%" /></p>
+<p align="center">Fig 5. Designed Virtual Network Topology within A Compute Node</p>
+
+<p>Some highlights:</p>
+
+<ul>
+  <li>Two OVS bridges <code class="highlighter-rouge">br-int</code> and <code class="highlighter-rouge">br-bond</code>, connected directly</li>
+  <li>Two physical NICs bonded into one virtual device, attached to <code class="highlighter-rouge">br-bond</code></li>
+  <li>Host IP address also configured on <code class="highlighter-rouge">br-bond</code>, serving as management IP</li>
+  <li>All instance devices (virtual NICs) attached to <code class="highlighter-rouge">br-int</code></li>
+</ul>
+
+<p>In the picture, <code class="highlighter-rouge">inst1</code> and <code class="highlighter-rouge">inst2</code> are two instances from different networks.
+The numbered devices started from <code class="highlighter-rouge">inst1</code> and ended at <code class="highlighter-rouge">inst2</code> is just the
+packet traversing path between the two (cross network) instances. As can be
+seen, there are 18 hops in total.</p>
+
+<p>In contrast, Fig 6 shows the topology in legacy OpenStack provider network
+model.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/6.png" width="75%" height="75%" /></p>
+<p align="center">Fig 6. Virtual Network Topology within A Compute Node in Legacy OpenStack</p>
+
+<p>The biggest difference here is: <strong>a Linux bridge sits between each instance
+and <code class="highlighter-rouge">br-int</code></strong>. This is because OpenStack supports a feature called “security
+group”, which uses <code class="highlighter-rouge">iptables</code> in the behind. Unfortunately, OVS ports do not
+support <code class="highlighter-rouge">iptables</code> rules; but Linux bridge ports do support, so in OpenStack
+a Linux bridge is inserted between each instance and <code class="highlighter-rouge">br-int</code>.</p>
+
+<p>Except this, other parts are similar, so in this circumstance, the total hops is
+24.</p>
+
+<h3 id="15-summary">1.5 Summary</h3>
+
+<h4 id="advantages">Advantages</h4>
+
+<p>First of all, we simplified OpenStack deployment architecture, removed some
+components that we did not need, e.g. L3 agent, DHCP agent, Neutron metadata
+agent, etc, and we no longer needed a standalone network node. For a team which
+just started private cloud with not so much experience, the developing and
+operating costs became relatively low.</p>
+
+<p>Secondly, we simplified the host network topology by removing security groups.
+The total hops between two instances from different networks was decreased from
+24 to 18, thus has lower latency.</p>
+
+<p>Thirdly, we had our gateways configured on HW devices, which had far more
+better performance than OpenStack’s pure SW solutions.</p>
+
+<p>And at last, the instance IP was routable, which benifited a lot to upper layer
+systems such as tracking and monitoring systems.</p>
+
+<h4 id="disadvantags">Disadvantags</h4>
+
+<p>First, as has been said, we removed security groups. So the security is
+sacrified at some extent. We compensated this partly by enforcing some security
+rules on HW firewalls.</p>
+
+<p>Secondly, the network provision process was less automatic. For example,
+we had to configure the core routers whenever we add/delete networks to/from
+OpenStack. Although these operations have a very low frequency, the impact of
+core router misconfiguration is dramatic - it could affect the entire network.</p>
+
+<h2 id="2-sdn-based-large-l2-network">2 SDN-based Large L2 Network</h2>
+
+<h3 id="21-new-challenges">2.1 New Challenges</h3>
+
+<p>Time arrived 2016, due to the scale expansion of our cluster and network, the
+VLAN-based L2 network reached some limitations.</p>
+
+<p>First of all, if you are familiar with data center networks you may know that
+<strong>hierachical network model is hard to scale</strong>.</p>
+
+<p>Secondly, all the OpenStack gateways were configured on the core
+routers, which made them the potential bottleneck and <strong>single point of failure</strong>.
+And more, core router failures will disrupt the entire network, so the <strong>failure
+radius is very large</strong>.</p>
+
+<p>Another limitation is that our blade was equipped with 2 x 1 Gbps NICs, which was
+too old for modern data center and morden applications.</p>
+
+<p>Besides, the VLAN has its own limitations: flooding in large VLAN segmentations
+is still a problem, and number of avialble VLAN IDs is less than 4096.</p>
+
+<p>On the other hand, we had also some new needs, as such:</p>
+
+<ol>
+  <li>Our corp acquired some companies during the past years, and the networks of
+those companies needed to connect/integrate to ours. At network
+level, we’d like to treat those subsidiary companies as tenants, so we had
+multitenancy and VPC needs.</li>
+  <li>We’d like the network provision more automatic, with little human
+intervention.</li>
+</ol>
+
+<h3 id="22-solution-openstack--sdn">2.2 Solution: OpenStack + SDN</h3>
+
+<p>Regarding to these requirements, we designed a <strong>HW+SW, OpenStack+SDN</strong> 
+solution jointly with the <strong><em>data center network team</em></strong> in our corporation,
+shifted the network <strong>from L2 to Large L2</strong>.</p>
+
+<h4 id="hw-topology">HW Topology</h4>
+
+<p>For the HW network topology, we evolved from the traditional 3-layer hierachical
+model to <strong>Spine-Leaf model</strong>, which gets more and more popular in modern data
+centers.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/7.png" width="70%" height="70%" /></p>
+<p align="center">Fig 7. Spine-Leaf Topology in the New Datacenter</p>
+
+<p>Spine-Leaf model is full-mesh connected, which means every device in Spine
+layer connects to every device in Leaf layer, and there is no connectitiy among
+nodes in the same layer. This connectivity pattern brings many benifits:</p>
+
+<ol>
+  <li><strong>Shorter traversing path and estimable latency</strong>: a server could reach any
+other server in exactly 3 hops (server-to-server latency)</li>
+  <li><strong>Ease of expansing</strong>: to increase the bandwidth, just add a node in one
+layer and connect it to all other nodes in the other layer</li>
+  <li><strong>More resilent to HW failures</strong>: all nodes are active, node failure radius
+is far more smaller than in hierachical model</li>
+</ol>
+
+<p>For blades, we upgraded the NICs to 10 Gbps, and further to 25 Gbps.</p>
+
+<h4 id="sdn-control-and-data-plane">SDN: Control and Data Plane</h4>
+
+<p>We have separate control and data planes [2]:</p>
+
+<ol>
+  <li>Data plane: VxLAN</li>
+  <li>Control plane: MP-BGP EVPN</li>
+</ol>
+
+<p>These are standard RFC protocols, refer to [2] for more protocol details and use
+cases.</p>
+
+<p>One additional benefit of this model is that it supports <strong>distributed
+gateway</strong>, which means all leaf nodes are acted as (active) gateways, which
+eliminates the performance bottleneck of traditional gateways on core routers.</p>
+
+<p>This solution physically support multitenancy (via VRF).</p>
+
+<h4 id="sdn-components-and-implementation">SDN: Components And Implementation</h4>
+
+<p>We developed our own SDN controller <strong>Ctrip Network Controller</strong> (CNC).</p>
+
+<p>CNC is a central SDN controller, and manges all Spine and Leaf nodes. It
+integrates with Neutron server via Neutron plugins, and is able to dynamically
+add configurations to Spine/Leaf nodes.</p>
+
+<p>Neutron changes:</p>
+
+<ul>
+  <li>Add CNC ML2 &amp; L3 plugins</li>
+  <li>New finite state machine (FSM) for port status</li>
+  <li>New APIs interact with CNC</li>
+  <li>DB schema changes</li>
+</ul>
+
+<p>Below is the monitoring panel for the neutron port states in a real data center.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/8.png" width="40%" height="40%" /></p>
+<p align="center">Fig 8. Monitoring Panel for Neutron Port States</p>
+
+<h3 id="23-hw--sw-topology">2.3 HW + SW Topology</h3>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/9.png" width="90%" height="90%" /></p>
+<p align="center">Fig 9. HW + SW Topology of the Designed SDN Solution</p>
+
+<p>Fig 9 is the overall HW + SW topology.</p>
+
+<p>VxLAN encap/decap is done on the leaf
+nodes. If we draw a horizeontal line to cross all Leaf nodes, this line splits
+the entire network into underlay and overlay. The bottom part (below leaf)
+belongs to underlay and is isolated by VLAN; The above part (above leaf) is
+overlay and isolated by VxLAN.</p>
+
+<p>Underlay is controlled by Neutron server, OVS and neutron-ovs-agent, overlay is
+controlled by CNC. CNC integrates with Neutron via Neutron plugins.</p>
+
+<p>As has been said, this is a joint work by cloud network team &amp; data center
+network team. We cloud network team focuses mainly on the underlay part.</p>
+
+<h3 id="24-spawn-an-instance">2.4 Spawn An Instance</h3>
+
+<p>In this solution, when spawning an instance, how the instance’s network gets reachable?</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/10.png" width="90%" height="90%" /></p>
+<p align="center">Fig 10. Flow of Spawn An Instance</p>
+
+<p>Major steps depicted in Fig 10:</p>
+
+<ol>
+  <li>Nova API (controller node): Create instance -&gt; schedule to one compute node</li>
+  <li>Nova compute: spawn instance on this node</li>
+  <li>Nova compute -&gt; Neutron server: create neutron port</li>
+  <li>Neutron server: create port (IP, MAC, GW, etc)</li>
+  <li>Neutron server -&gt; CNC plugin -&gt; CNC: send port info</li>
+  <li>CNC: save port info to its own DB</li>
+  <li>Neutron server -&gt; Nova compute: return the created port’s info</li>
+  <li>Nova compute: create network device (virtual NIC) for instance, configure device (IP, MAC, GW, etc), then attach it to OVS</li>
+  <li>OVS agent: detect new device attached -&gt; configure OVS (add flow) -&gt; <strong>Underlay network OK</strong></li>
+  <li>Nova compute -&gt; Neutron server: update port <code class="highlighter-rouge">host_id</code>. The message is something like this: port <code class="highlighter-rouge">1234</code> is on host <code class="highlighter-rouge">node-1</code></li>
+  <li>Neutron server -&gt; CNC: update port <code class="highlighter-rouge">host_id</code>, something like this: port <code class="highlighter-rouge">1234</code> is on host <code class="highlighter-rouge">node-1</code></li>
+  <li>CNC: retrieve database, get the leaf interfaces that <code class="highlighter-rouge">node-1</code> connected to, dynamically add configurations to these interfaces -&gt; <strong>Overlay network OK</strong></li>
+  <li>Both underlay and overlay networks OK -&gt; instance reachable</li>
+</ol>
+
+<p>In Fig 10, black lines are legacy OpenStack flows, and blue lines are newly
+added by us.</p>
+
+<h3 id="25-summary">2.5 Summary</h3>
+
+<p>A summary of the SDN-based large L2 network solution.</p>
+
+<h4 id="hw">HW</h4>
+
+<p>First, HW network model evolved from hierarchical (3-layer) network to
+Spine-Leaf (2-tier). With the Spine-Leaf full-mesh connectivity,
+server-to-server latency gets more lower.  Spine-Leaf also supports distributed
+gateway, which means all leaf nodes act as gateway for the same network, not
+only decreased the traversing path, but also alleviated the bottleneck of
+central gateways.</p>
+
+<p>Another benefit of full-mesh connectivity is that the HW network are now more
+resilient to failures. All devices are active rather than active-backup
+(traditional 3-layer model), thus when one device fails, it has far more
+smaller failure radius.</p>
+
+<h4 id="sw">SW</h4>
+
+<p>For the SW part, we developed our own SDN controller, and integrated it with
+OpenStack neutron via plugins.  The SDN controller cloud dynamically send
+configurations to HW devices.</p>
+
+<p>Although we have only mentioned VM here, this solution actually
+supports both VM and BM provision.</p>
+
+<h4 id="multi-tenancy--vpc-support">Multi-tenancy &amp; VPC support</h4>
+
+<p>At last, this solution supports multi-tenancy and VPC.</p>
+
+<h2 id="3-k8s--hybrid-cloud-network">3 K8S &amp; Hybrid Cloud Network</h2>
+
+<p>At 2017, we started to deploy container platforms, migrating some
+applications from VM/BM to containers.</p>
+
+<p>Container orchestrators (e.g. Mesos, K8S) has different characteristics compared
+with VM orchestrator (e.g OpenStack), such as:</p>
+
+<ul>
+  <li>Large scale instances, 10K ~ 100K containers per cluster is commonly seen</li>
+  <li>Higher deploy/destroy frequencies</li>
+  <li>Shorter spawn/destroy time: ~10s (VM: ~100s)</li>
+  <li>Container failure/drifting is the norm rather than exception</li>
+</ul>
+
+<h3 id="31-k8s-network-in-private-cloud">3.1 K8S Network In Private Cloud</h3>
+
+<p>Characteristics of container platform raised new requirements to the network.</p>
+
+<h4 id="311-network-requirements">3.1.1 Network Requirements</h4>
+
+<p>First, The network API must be high performance, and supporting concurrency.</p>
+
+<p>Secondly, whether using an agent or a binary to configure network (create vNICs
+and configure them), it should be fast enough.</p>
+
+<p>To sucessfully sell container platforms to our customers, we must keep
+a considerable amount of compatibility with existing systems.</p>
+
+<p>One of these is: we must <strong>keep the IP address unchanged when container drifts
+from one node to another</strong>. This is an anti-pattern to container platform’s
+philosophy, as those orchestrators are desgined to weaken the IP address: users
+should only see the service that a container exposed, but not the IP address of
+a single container.  The reason why we have to comprimise here is that in
+OpenStack age, VM migration keeps the IP unchanged. So lots of outer systems
+assumed that IP address is an immutable attribute of an instance during its
+lifecycle, and they designed their systems based on this assumption. If we
+suddenly break this assumption, lots of systems (SOA, SLB, etc) need to be
+refactored, and this is out of our control.</p>
+
+<h4 id="312-solution-extend-sdn-to-support-mesosk8s">3.1.2 Solution: Extend SDN to Support Mesos/K8S</h4>
+
+<p>In private cloud, we decided to extend our SDN solution to integrate container
+networks. We reused existing infrastructures, including Neutron, CNC, OVS,
+Neutron-OVS-Agent. And then developed a CNI plugin for neutron.</p>
+
+<p>Some changes or newly added components listed below.</p>
+
+<h5 id="neutron-changes">Neutron Changes</h5>
+
+<p>First, we added some new APIs, e.g. legacy Neutron supports only allocating port
+by network ID, we added label attributes to Neutron <code class="highlighter-rouge">networks</code> model, supporting
+allocating port by network labels. For example, CNI plugin will say, <strong><em>“I want
+a port allocated from any network with ‘prod-env’ label”</em></strong>. This decouples K8S
+from OpenStack details and is more scalable, because a label could mapping to
+any number of networks.</p>
+
+<p>Next, we did some performance optimizations:</p>
+
+<ul>
+  <li>Add Bulk port API</li>
+  <li>Database access optimizations</li>
+  <li>Async API for high concurrency</li>
+  <li>Critical path refactor</li>
+</ul>
+
+<p>We also backported some new features from upstream, e.g. graceful OVS agent
+restart, a big benefit for network operators.</p>
+
+<h5 id="new-k8s-cni-plugin-for-neutron">New K8S CNI plugin for neutron</h5>
+
+<p>K8S CNI plugin creates and deletes networks for each Pod. The jobs it does are
+much the same with other CNI plugins (e.g Calico, Flannel): creates veth pair,
+attaches to OVS and container netns, configures MAC, IP, GW, etc.</p>
+
+<p>Two big differences seperating it from other plugins:</p>
+
+<ol>
+  <li>Communicate with Neutron (central IPAM) to allocate/free port (IP address)</li>
+  <li>Update port information to neutron server after finishing</li>
+</ol>
+
+<h5 id="existing-network-servicescomponents-upgrade">Existing network services/components upgrade</h5>
+
+<p>We also upgraded some network infra. E.g. we’ve hit some OVS bugs
+during past few years:</p>
+
+<ul>
+  <li>ovs-vswitchd 100% CPU bug [3]</li>
+  <li>OVS port mirror bug [4]</li>
+</ul>
+
+<p>So we upgraded OVS to the latest LTS <code class="highlighter-rouge">2.5.6</code>, which has solved those bugs.</p>
+
+<h4 id="313-pod-drifting">3.1.3 Pod Drifting</h4>
+
+<p>Network steps in starting a container are much the same as in
+spawning a VM in Fig. 10, so we do not detail it here.</p>
+
+<p>Fig 11 shows how the IP address stayed unchanged during container drifting. The
+key point is: CNI plugin knows how to join some Pod labels into a port <code class="highlighter-rouge">name</code>.
+This <code class="highlighter-rouge">name</code> is unique index, so the second node (node B) could get the IP
+address information from neutron with this name.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/11.png" width="80%" height="80%" /></p>
+<p align="center">Fig 11. Pod drifting with the same IP within a K8S cluster </p>
+
+<h4 id="314-summary">3.1.4 Summary</h4>
+
+<p>A quick summary:</p>
+
+<ul>
+  <li>We integrated container platform into existing infra in a short time</li>
+  <li>Single global IPAM manages all VM/BM/container networks</li>
+</ul>
+
+<p>Sum up, <strong>this is the latest network solution int private cloud</strong>.</p>
+
+<p>Current deployment scale of this new solution:</p>
+
+<ul>
+  <li>4 availability zones (AZ)</li>
+  <li>Up to 500+ physical nodes (VM/BM/Container hosts) per AZ</li>
+  <li>Up to 500+ instances per host</li>
+  <li>Up to 20K+ instances per AZ</li>
+</ul>
+
+<h4 id="315-future-architecture">3.1.5 Future Architecture</h4>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/12.png" width="85%" height="85%" /></p>
+<p align="center">Fig 12. Layered view of the future network architecture</p>
+
+<p>Fig 12 is an architucture we’d like to achieve in the future.</p>
+
+<p>First, the network will be split into underlay and overlay planes. IaaS and other
+Infra services deploy in underlay network, e.g OpenStack, CNC. Then creating VPC
+in overlay networks, and deploying VM and BM instances in VPCs. These have been
+achieved.</p>
+
+<p>One K8S cluster will be kept within one VPC, and each cluster manages its own
+networks. All access via IP address should be kept within that cluster, and all
+access from outside of the cluster should go through Ingress - the K8S native
+way. We haven’t achieved this, because it needs lots of SW and HW system
+refactors.</p>
+
+<h3 id="32-k8s-on-public-cloud">3.2 K8S on Public Cloud</h3>
+
+<h4 id="321-requirements">3.2.1 Requirements</h4>
+
+<p>Ctrip started its internationalization in recent years, in the techical layer,
+we should be able to support global deployment, which means provisioning
+resources outside mainland China.</p>
+
+<p>Building overseas private cloud is not practical, as the designing and building
+process will take too much time. So we chose to purchase public cloud
+resources, and integrate them to our private cloud infra, turning CDOS into
+a hybrid cloud platform. CDOS API will abstract out all vendor-specific details,
+and provide a unified API to our internal customers/systems.</p>
+
+<p>This work involves networking solutions on public cloud platforms.</p>
+
+<h4 id="322-k8s-network-solution-on-aws">3.2.2 K8S Network Solution on AWS</h4>
+
+<p>Taking AWS as example, let’s see our K8S network solution.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/13.png" width="70%" height="70%" /></p>
+<p align="center">Fig 13. K8S network solution on public cloud vendor (AWS)</p>
+
+<p>First, spawning EC2 instances as K8S nodes on AWS. Then we developed a CNI
+plugin to dynamically plug/unplug ENI to EC2 [5, 6].  The ENIs were given to
+Pods as its vNIC.</p>
+
+<p>We developed a global IPAM service (just like Neutron in OpenStack) and deployed
+in VPC, it manages all network resources, and calls AWS APIs for real
+allocation/deallocation.</p>
+
+<p>The CNI plugin also supports attach/detach floating IP to Pods.  And again, the
+IP address stays the same when Pod drifts from one node to another.  This is
+achieved by ENI drifting.</p>
+
+<h4 id="323-vpcs-over-the-globe">3.2.3 VPCs over the globe</h4>
+
+<p>Fig 14 is the global picture of our VPCs in both private and public cloud.</p>
+
+<p>We have some VPCs in our private cloud distributed in Shanghai and Nantong.
+Outside mainland China, we have VPCs on public cloud regions, including
+Seoul, Moscow, Frankfurt, California, Hong Kong, Melborne, and many more.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/14.png" width="70%" height="70%" /></p>
+<p align="center">Fig 14. VPCs distributed over the globe </p>
+
+<p>Network segments of VPCs on both prviate and public cloud are arranged to be
+non-overlapped, so we connect them with direct connect techniques, and the IP
+is routable (if needed).</p>
+
+<p>OK, right here, I have introduced all of the major aspects of our network
+evolution. In the next, let’s see some new challenges in the cloud native age.</p>
+
+<h2 id="4-cloud-native-solutions">4 Cloud Native Solutions</h2>
+
+<p>The current network solution faced some new challenges in cloud native era:</p>
+
+<ul>
+  <li>Central IPAM may be the new bottleneck, and Neutron is not designed for performance</li>
+  <li>Cloud native prefers local IPAM (IPAM per host)</li>
+  <li>Large failure radius: IP drifting among entire AZ</li>
+  <li>Dense deployment of containers will hit HW limit of leaf nodes</li>
+  <li>Increasingly strong host firewall (L4-L7) needs</li>
+</ul>
+
+<p>So we are doing some investigations on new solutions, e.g. Calico, Cilium.
+Calico has been widely used nowadays, so I’ll skip it and give some
+introduction to a relatively less well-known solution: Cilium.</p>
+
+<h3 id="41-cilium-overview">4.1 Cilium Overview</h3>
+
+<p>Cilium is a brand-new solution [7], and it needs Kernel 4.8+.</p>
+
+<p>Cilium’s core relies on eBPF/BPF, which is a bytecode sandbox in Linux kernel.
+If you never heard of this, think BPF as iptables, it could hook and
+modify packets in the kernel stack, we will tell the difference later.</p>
+
+<p>Cilium relies on BPF to achieve connectivity &amp; security.
+It has following components:</p>
+
+<ul>
+  <li>CLI</li>
+  <li>Plugin for orchestrator (Mesos, K8S, etc) integration</li>
+  <li>Policy repository (etcd or consul)</li>
+  <li>Host agent (also acts as local IPAM)</li>
+</ul>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/15.png" width="60%" height="60%" /></p>
+<p align="center">Fig 15. Cilium</p>
+
+<h3 id="42-host-networking">4.2 Host Networking</h3>
+
+<p>Any networking solution could be split into two major parts:</p>
+
+<ol>
+  <li>Host-networking: instance-to-instance communication, and instance-to-host communication</li>
+  <li>Multi-host-networking: cross-host and/or cross-subnet instance-to-instance communication</li>
+</ol>
+
+<p>Let’s see the host-networking of Cilium.</p>
+
+<p align="center"><img src="/assets/img/ctrip-net-evolution/16.png" width="45%" height="45%" /></p>
+<p align="center">Fig 16. Cilium host-networking</p>
+
+<p>First, each host runs a Cilium agent, the agent acts as local IPAM, and manages its CIDR.
+Upon starting, it creates a veth pair named <code class="highlighter-rouge">cilium_host &lt;--&gt; cilium_net</code>, and
+sets the first IP address of the CIDR to <code class="highlighter-rouge">cilium_host</code>, which then acts as the
+gateway of the CIDR.</p>
+
+<p>When starting a Pod in this host, the CNI plugin will:</p>
+
+<ul>
+  <li>allocate an IP address from this CIDR</li>
+  <li>create a veth pair for the Pod</li>
+  <li>configure the IP, gateway info to Pod</li>
+</ul>
+
+<p>Then the topology will look like Fig 16. Note that there is no OVS or
+Linux bridges among the Pods’ veth pairs and <code class="highlighter-rouge">cilium_host &lt;--&gt; cilium_net</code>.
+Actually there are also no special ARP entries or route entries to connect the
+veth pairs. Then how does the packet been forwarded when it reaches the veth
+pair end? The answer is <strong>BPF code</strong>. CNI plugin will <strong>generate BPF rules,
+compile them and inject them into kernel</strong> to bridge the gaps between veth pairs.</p>
+
+<p>Summary of cilium host networking:</p>
+
+<ul>
+  <li>Inst-to-inst: BPF + Kernel Stack L2 forward</li>
+  <li>Inst-to-host: BPF + L3 Routing</li>
+</ul>
+
+<h3 id="43-multi-host-networking">4.3 Multi-host networking</h3>
+
+<p>For multi-host networking, Cilium provides two commonly used ways:</p>
+
+<ul>
+  <li>VxLAN overlay</li>
+  <li>BGP direct routing</li>
+</ul>
+
+<p>If using VxLAN, Cilium will create a <code class="highlighter-rouge">cilium_vxlan</code> device in each host, and do
+VxLAN encap/decap by software. The performance will be a big concern, although
+VxLAN HW offload will partly alleviate the burden.</p>
+
+<p>BGP is another choice. In this case, you need to run a BGP agent in each host,
+the BGP agent will do peering with outside network. This needs data center
+network support. On public cloud, you could also try the BGP API.
+BGP solution has better performance compared with VxLAN overlay, and more
+importantly, it makes the container IP routable.</p>
+
+<h3 id="44-pros--cons">4.4 Pros &amp; Cons</h3>
+
+<p>Here is a brief comparison according to my understanding and experiment.</p>
+
+<h4 id="pros">Pros</h4>
+
+<ul>
+  <li>K8S-native L4-L7 security policy support</li>
+  <li>High performance network policy enforcement</li>
+  <li>Theoretical complexity: BPF O(1) vs iptables O(n)</li>
+  <li>High performance forwarding plane (veth pair, IPVLAN)</li>
+  <li>Dual stack support (IPv4/IPv6)</li>
+  <li>Support run over flannel (Cilium only handles network policy)</li>
+  <li>Active community
+    <ul>
+      <li>Development driven by a company</li>
+      <li>Core developers from kernel community</li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="cons">Cons</h4>
+
+<p><strong>Latest kernel (4.8+ at least, 4.14+ better) needed</strong>. lots of companies’
+PROD environments run kernels older than this.</p>
+
+<p><strong>Not enough user stories &amp; best practices yet</strong>. Everyone say Cilium is
+brilliant, but no one claim they have been widely used in their large scale
+PROD environments.</p>
+
+<p><strong>High dev &amp; ops costs</strong>. Compared with iptables-based solutions, e.g. Calico.
+Big companies usually have customization needs because all of reasons, e.g.
+compatibility with old systems to not break the business. The development
+would need a gentle understanding with kernel stack: you should be familir
+with kernel data structures, know the packet traversing path, have a
+considerable experience with C programming - as BPF code is written in C.</p>
+
+<p>Trouble shooting and debugging. You should equipped yourself with Cilium trouble
+shooting skills, which are different from iptables-based solutions. While in
+many cases, their maybe a shortage of proper trouble shooting tools.</p>
+
+<p>But at last, <strong>Cilium/eBPF is still one of the most exciting techs rised in
+recent years</strong>, and it’s still under fast developing. So, have a try and find
+the fun!</p>
+
+<h2 id="references">References</h2>
+
+<ol>
+  <li><a href="https://docs.openstack.org/neutron/rocky/admin/intro-os-networking.html">OpenStack Doc: Networking Concepts</a></li>
+  <li><a href="https://www.cisco.com/c/en/us/products/collateral/switches/nexus-7000-series-switches/white-paper-c11-737022.pdf">Cisco Data Center Spine-and-Leaf Architecture: Design Overview</a></li>
+  <li><a href="https://mail.openvswitch.org/pipermail/ovs-dev/2014-October/290600.html">ovs-vswitchd: Fix high cpu utilization when acquire idle lock fails</a></li>
+  <li><a href="https://bugs.launchpad.net/cloud-archive/+bug/1639273">openvswitch port mirroring only mirrors egress traffic</a></li>
+  <li><a href="https://github.com/lyft/cni-ipvlan-vpc-k8s">Lyft CNI plugin</a></li>
+  <li><a href="https://www.slideshare.net/aspyker/container-world-2018">Netflix: run container at scale</a></li>
+  <li><a href="https://cilium.io/">Cilium Project</a></li>
+  <li><a href="https://arthurchiao.github.io/blog/cilium-cheat-sheet/">Cilium Cheat Sheet</a></li>
+  <li><a href="https://arthurchiao.github.io/blog/cilium-code-walk-through-create-network/">Cilium Code Walk Through: CNI Create Network</a></li>
+</ol>
+
+
+  <!-- POST NAVIGATION -->
+  <div class="postNav clearfix">
+     
+      <a class="prev" href="/blog/how-to-make-linux-microservice-aware-with-cilium-zh/"><span>&laquo;&nbsp;[译] 如何基于 Cilium 和 eBPF 打造可感知微服务的 Linux</span>
+      
+    </a>
+      
+      
+      <a class="next" href="/blog/gobgp-cheat-sheet/"><span>GoBGP Cheat Sheet&nbsp;&raquo;</span>
+       
+      </a>
+     
+  </div>
+</div>
+
+
+         
+
+      </div>
+   </div><!-- end .content -->
+
+   <div class="footer">
+   <div class="container">
+      <p class="copy">&copy; 2016-2019
+      <a href="https://arthurchiao.github.io">Arthur Chiao</a>, Powered by
+      <a href="http://jekyllrb.com">Jekyll </a>, Theme originated from
+      <a href="https://github.com/brianmaierjr/long-haul"> Long Haul.</a>
+
+      <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+      <span id="busuanzi_container_site_pv"> Site visits:
+          <span id="busuanzi_value_site_pv"></span>, powered by<a href="http://busuanzi.ibruce.info/"> busuanzi</a>
+      </span>
+
+      </p>
+
+      <div class="footer-links"> 
+         <ul class="noList"> 
+            
+            <li><a href="https://www.facebook.com/profile.php?id=100014334455077">
+                  <svg id="facebook-square" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M82.667,1H17.335C8.351,1,1,8.351,1,17.336v65.329c0,8.99,7.351,16.335,16.334,16.335h65.332 C91.652,99.001,99,91.655,99,82.665V17.337C99,8.353,91.652,1.001,82.667,1L82.667,1z M84.318,50H68.375v42.875H50V50h-8.855V35.973 H50v-9.11c0-12.378,5.339-19.739,19.894-19.739h16.772V22.3H72.967c-4.066-0.007-4.57,2.12-4.57,6.078l-0.023,7.594H86.75 l-2.431,14.027V50z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://linkedin.com/in/yanan-zhao-7691317b?trk=hp-identity-photo">
+                  <svg id="linkedin" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M99.001,19.428c-3.606,1.608-7.48,2.695-11.547,3.184c4.15-2.503,7.338-6.466,8.841-11.189 c-3.885,2.318-8.187,4-12.768,4.908c-3.667-3.931-8.893-6.387-14.676-6.387c-11.104,0-20.107,9.054-20.107,20.223 c0,1.585,0.177,3.128,0.52,4.609c-16.71-0.845-31.525-8.895-41.442-21.131C6.092,16.633,5.1,20.107,5.1,23.813 c0,7.017,3.55,13.208,8.945,16.834c-3.296-0.104-6.397-1.014-9.106-2.529c-0.002,0.085-0.002,0.17-0.002,0.255 c0,9.799,6.931,17.972,16.129,19.831c-1.688,0.463-3.463,0.71-5.297,0.71c-1.296,0-2.555-0.127-3.783-0.363 c2.559,8.034,9.984,13.882,18.782,14.045c-6.881,5.424-15.551,8.657-24.971,8.657c-1.623,0-3.223-0.096-4.796-0.282 c8.898,5.738,19.467,9.087,30.82,9.087c36.982,0,57.206-30.817,57.206-57.543c0-0.877-0.02-1.748-0.059-2.617 C92.896,27.045,96.305,23.482,99.001,19.428z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://github.com/ArthurChiao">
+                  <svg id="github" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M79.099,79.099 c-3.782,3.782-8.184,6.75-13.083,8.823c-1.245,0.526-2.509,0.989-3.79,1.387v-7.344c0-3.86-1.324-6.699-3.972-8.517 c1.659-0.16,3.182-0.383,4.57-0.67c1.388-0.287,2.855-0.702,4.402-1.245c1.547-0.543,2.935-1.189,4.163-1.938 c1.228-0.75,2.409-1.723,3.541-2.919s2.082-2.552,2.847-4.067s1.372-3.334,1.818-5.455c0.446-2.121,0.67-4.458,0.67-7.01 c0-4.945-1.611-9.155-4.833-12.633c1.467-3.828,1.308-7.991-0.478-12.489l-1.197-0.143c-0.829-0.096-2.321,0.255-4.474,1.053 c-2.153,0.798-4.57,2.105-7.249,3.924c-3.797-1.053-7.736-1.579-11.82-1.579c-4.115,0-8.039,0.526-11.772,1.579 c-1.69-1.149-3.294-2.097-4.809-2.847c-1.515-0.75-2.727-1.26-3.637-1.532c-0.909-0.271-1.754-0.439-2.536-0.503 c-0.782-0.064-1.284-0.079-1.507-0.048c-0.223,0.031-0.383,0.064-0.478,0.096c-1.787,4.53-1.946,8.694-0.478,12.489 c-3.222,3.477-4.833,7.688-4.833,12.633c0,2.552,0.223,4.889,0.67,7.01c0.447,2.121,1.053,3.94,1.818,5.455 c0.765,1.515,1.715,2.871,2.847,4.067s2.313,2.169,3.541,2.919c1.228,0.751,2.616,1.396,4.163,1.938 c1.547,0.543,3.014,0.957,4.402,1.245c1.388,0.287,2.911,0.511,4.57,0.67c-2.616,1.787-3.924,4.626-3.924,8.517v7.487 c-1.445-0.43-2.869-0.938-4.268-1.53c-4.899-2.073-9.301-5.041-13.083-8.823c-3.782-3.782-6.75-8.184-8.823-13.083 C9.934,60.948,8.847,55.56,8.847,50s1.087-10.948,3.231-16.016c2.073-4.899,5.041-9.301,8.823-13.083s8.184-6.75,13.083-8.823 C39.052,9.934,44.44,8.847,50,8.847s10.948,1.087,16.016,3.231c4.9,2.073,9.301,5.041,13.083,8.823 c3.782,3.782,6.75,8.184,8.823,13.083c2.143,5.069,3.23,10.457,3.23,16.016s-1.087,10.948-3.231,16.016 C85.848,70.915,82.88,75.317,79.099,79.099L79.099,79.099z"></path>
+                  </svg>
+            </a></li>
+             
+            
+            <li><a href="mailto:arthurchiao@hotmail.com">
+                  <svg id="mail" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M25.5,25.5h49 c0.874,0,1.723,0.188,2.502,0.542L50,57.544L22.998,26.041C23.777,25.687,24.626,25.499,25.5,25.5L25.5,25.5z M19.375,68.375v-36.75 c0-0.128,0.005-0.256,0.014-0.383l17.96,20.953L19.587,69.958C19.448,69.447,19.376,68.916,19.375,68.375L19.375,68.375z M74.5,74.5 h-49c-0.541,0-1.072-0.073-1.583-0.212l17.429-17.429L50,66.956l8.653-10.096l17.429,17.429C75.572,74.427,75.041,74.5,74.5,74.5 L74.5,74.5z M80.625,68.375c0,0.541-0.073,1.072-0.211,1.583L62.652,52.195l17.96-20.953c0.008,0.127,0.014,0.255,0.014,0.383 L80.625,68.375L80.625,68.375z"></path>
+                  </svg>
+            </a></li>
+            
+         </ul>
+      </div>
+   </div>
+</div><!-- end .footer -->
+
+   <!-- Add jQuery and other scripts -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src=""><\/script>')</script>
+<script src="/assets/js/dropcap.min.js"></script>
+<script src="/assets/js/responsive-nav.min.js"></script>
+<script src="/assets/js/scripts.js"></script>
+
+
+</body>
+
+</html>

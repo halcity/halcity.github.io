@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8" <![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9" <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+       })(window,document,'script','dataLayer','GTM-WP54B9K');</script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>Traffic Mirroring With OVS</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+    <!-- Come and get me RSS readers -->
+    <link rel="alternate" type="application/rss+xml" title="ArthurChiao's Blog" href="http://0.0.0.0:4000/feed.xml" />
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <!--[if IE 8]><link rel="stylesheet" href="/assets/css/ie.css"><![endif]-->
+    <link rel="canonical" href="http://0.0.0.0:4000/blog/trafic-mirror-with-ovs/">
+
+    <!-- Modernizr -->
+    <script src="/assets/js/modernizr.custom.15390.js" type="text/javascript"></script>
+
+    
+</head>
+
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WP54B9K"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+    <div class="header">
+     <div class="container">
+         <h1 class="logo"><a href="/">ArthurChiao's Blog</a></h1>
+         <nav class="nav-collapse">
+             <ul class="noList">
+                 
+                   
+                   
+                   <li class="element first  ">
+                     <a href="/index.html">Home</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles">Articles</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles-zh">Articles (中文)</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/categories">Categories</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   last">
+                     <a href="/about">About</a>
+                   </li> 
+                 
+                 <!-- <li> <a href="https://github.com/arthurchiao/reading" target="_blank">Reading</a></li> -->
+                 <!-- <li> <a href="https://github.com/arthurchiao/" target="_blank">GitHub</a></li> -->
+             </ul>
+         </nav>
+     </div>
+ </div><!-- end .header -->
+
+
+   <div class="content">
+      <div class="container">
+         <div class="post">
+  
+  <h1 class="postTitle">Traffic Mirroring With OVS</h1>
+  <p class="meta">2018-11-10 | <span class="time">15</span> Minute Read</p>
+
+  
+  
+  <p>Traffic mirroring, or port mirroring, is a technique to send a copy of the
+network traffic to a backend system. It is commonly used by network
+administrators and developers who need to monitor the network traffic, or
+diagnose network problems. Systems relying on traffic mirror include: intrusion
+detection system (IDS), passive probe, real user monitoring (RUM), traffic
+replay system, etc. [1]</p>
+
+<p>Traditional traffic mirroring solutions are based on hardware switches, and are
+vendor-specific, which often found expensive, hard to use and evolve.
+With the growing of cloud computing and network virtualization,
+software-based and vendor-agnostic solutions emerge.</p>
+
+<p>In this article, we will investigate the feasibility of traffic mirroring based
+on OVS [2].</p>
+
+<h2 id="1-preliminary-knowledge">1 Preliminary Knowledge</h2>
+
+<h3 id="11-ovs-bridge">1.1 OVS Bridge</h3>
+
+<p>An OVS bridge is a software implemented Layer 2 (L2) bridge.</p>
+
+<h3 id="12-ovs-port">1.2 OVS Port</h3>
+
+<p>A port is a virtual device which could be used as a NIC by applications to
+send/receive packets.</p>
+
+<p>An OVS port could be many types, for example:</p>
+
+<ol>
+  <li>physical NIC</li>
+  <li>tap device</li>
+  <li>a veth pair</li>
+  <li>OVS internal port, patch port</li>
+</ol>
+
+<h3 id="13-ovs-port-mirroring">1.3 OVS Port Mirroring</h3>
+
+<p>OVS provides a <a href="http://docs.openvswitch.org/en/latest/faq/configuration/">way</a>
+to duplicate network traffic of specified ports to a dedicated output port.
+The duplication could be in single direction (ingress/egress) or both.</p>
+
+<h3 id="14-container-network-basics">1.4 Container Network Basics</h3>
+
+<p>This article needs some container basics, see our previous post
+<a href="/blog/play-with-container-network-if/">Play With Container Network Interface</a>
+if you are unfamilir with this topic.</p>
+
+<h2 id="2-mirror-traffic-with-ovs">2 Mirror Traffic With OVS</h2>
+
+<p>This post referenced an earlier blog <a href="https://backreference.org/2014/06/17/port-mirroring-with-linux-bridges/">Port mirroring with Linux bridges</a>. Some syntax sugar of OVS CLI got well explained there, we do not repeat them here.</p>
+
+<p>For simplicity, we wrapped some shell commands into (really) simple scripts. You
+could find them in the appendix.</p>
+
+<h3 id="21-prepare-environment">2.1 Prepare Environment</h3>
+
+<p>Refer to appendix A or our post [4] for how to setup a test environment like this:</p>
+
+<p align="center"><img src="/assets/img/traffic-mirror-with-ovs/net-topo.png" width="45%" height="45%" /></p>
+
+<h3 id="22-create-mirror">2.2 Create Mirror</h3>
+
+<p>First, add a device as the output port of mirrored traffic. We use OVS internal
+port here:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./add-port.sh mirror0-output
+
+<span class="nv">$ </span>ovs-vsctl show | <span class="nb">grep </span>mirror0-output
+        Port <span class="s2">"mirror0-output"</span>
+            Interface <span class="s2">"mirror0-output"</span>
+
+<span class="nv">$ </span>ovs-vsctl get port mirror0-output _uuid
+d74a2e7e-5d66-4a48-9261-7d080444964f
+</code></pre></div></div>
+
+<p>then configure our mirror:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./add-mirror.sh br-int mirror0 mirror0-output
+762fe791-bf4a-4180-b0f8-d22627d3970f
+
+<span class="nv">$ </span>ovs-vsctl list mirror
+name                : <span class="s2">"mirror0"</span>
+output_port         : d74a2e7e-5d66-4a48-9261-7d080444964f
+select_all          : <span class="nb">false
+</span>select_dst_port     : <span class="o">[]</span>
+select_src_port     : <span class="o">[]</span>
+statistics          : <span class="o">{</span><span class="nv">tx_bytes</span><span class="o">=</span>0, <span class="nv">tx_packets</span><span class="o">=</span>0<span class="o">}</span>
+</code></pre></div></div>
+
+<h3 id="23-add-traffic-source">2.3 Add Traffic Source</h3>
+
+<p>Mirror only the egress traffic:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./add-traffic-source.sh mirror0 vnic-1 egress
+
+<span class="nv">$ </span>./list-mirror.sh
+_uuid               : 762fe791-bf4a-4180-b0f8-d22627d3970f
+name                : <span class="s2">"mirror0"</span>
+output_port         : d74a2e7e-5d66-4a48-9261-7d080444964f
+select_all          : <span class="nb">false
+</span>select_dst_port     : <span class="o">[]</span>
+select_src_port     : <span class="o">[</span>29a6d786-5ad2-4e8a-afdb-2f099fbe0de1]
+statistics          : <span class="o">{</span><span class="nv">tx_bytes</span><span class="o">=</span>448, <span class="nv">tx_packets</span><span class="o">=</span>7<span class="o">}</span>
+</code></pre></div></div>
+
+<p>All ports whose <code class="highlighter-rouge">egress</code> traffic are being mirrored are shown in the <code class="highlighter-rouge">select_src_port</code> list,
+and those whose <code class="highlighter-rouge">ingress</code> being mirrored shown in <code class="highlighter-rouge">select_dst_port</code> list.</p>
+
+<p>Verify that <code class="highlighter-rouge">29a6d786-5ad2-4e8a-afdb-2f099fbe0de1</code> is just <code class="highlighter-rouge">vnic-1</code>’s UUID:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ovs-vsctl get port vnic-1 _uuid
+29a6d786-5ad2-4e8a-afdb-2f099fbe0de1
+</code></pre></div></div>
+
+<p>You could also mirror both ingress or both:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./add-traffic-source.sh mirror0 vnic-1 ingress
+
+<span class="nv">$ </span>./add-traffic-source.sh mirror0 vnic-1 all
+</code></pre></div></div>
+
+<p>Now our network topology:</p>
+
+<p align="center"><img src="/assets/img/traffic-mirror-with-ovs/net-topo-with-output.png" width="45%" height="45%" /></p>
+
+<h2 id="3-test">3 Test</h2>
+
+<h3 id="31-setup-capture">3.1 Setup Capture</h3>
+
+<p>To test the mirror, we will generate and capture ICMP packets.</p>
+
+<p>Use <code class="highlighter-rouge">tcpdump</code> to capture ICMP packets on <code class="highlighter-rouge">vnic-1</code>:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ip netns <span class="nb">exec </span>21580 tcpdump <span class="nt">-n</span> <span class="nt">-i</span> vnic-1 <span class="s1">'icmp'</span>
+listening on vnic-1, link-type EN10MB <span class="o">(</span>Ethernet<span class="o">)</span>, capture size 65535 bytes
+</code></pre></div></div>
+
+<p>this is equivalent to log into <code class="highlighter-rouge">ctn-1</code> with <code class="highlighter-rouge">docker exec -it ctn-1 sh</code> and run
+the <code class="highlighter-rouge">tcpdump</code> command in it.</p>
+
+<p>Capture on <code class="highlighter-rouge">mirror0-output</code>:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>tcpdump <span class="nt">-n</span> <span class="nt">-i</span> mirror0-output <span class="s1">'icmp'</span>
+tcpdump: WARNING: mirror0-output: no IPv4 address assigned
+listening on mirror0-output, link-type EN10MB <span class="o">(</span>Ethernet<span class="o">)</span>, capture size 65535 bytes
+</code></pre></div></div>
+
+<p><strong>No packets on both.</strong></p>
+
+<h3 id="32-generate-traffic">3.2 Generate Traffic</h3>
+
+<p>Now ping <code class="highlighter-rouge">ctn-2</code> (<code class="highlighter-rouge">192.168.1.4</code>) from <code class="highlighter-rouge">ctn-1</code> (<code class="highlighter-rouge">192.168.1.3</code>), which will send
+ICMP echo request and receive ICMP echo reply packets:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker <span class="nb">exec</span> <span class="nt">-it</span> ctn-1 sh
+
+/ <span class="c"># ping 192.168.1.4</span>
+PING 192.168.1.4 <span class="o">(</span>192.168.1.4<span class="o">)</span>: 56 data bytes
+64 bytes from 192.168.1.4: <span class="nb">seq</span><span class="o">=</span>0 <span class="nv">ttl</span><span class="o">=</span>64 <span class="nb">time</span><span class="o">=</span>0.460 ms
+64 bytes from 192.168.1.4: <span class="nb">seq</span><span class="o">=</span>1 <span class="nv">ttl</span><span class="o">=</span>64 <span class="nb">time</span><span class="o">=</span>0.079 ms
+64 bytes from 192.168.1.4: <span class="nb">seq</span><span class="o">=</span>2 <span class="nv">ttl</span><span class="o">=</span>64 <span class="nb">time</span><span class="o">=</span>0.084 ms
+...
+</code></pre></div></div>
+
+<p>Output of <code class="highlighter-rouge">vnic-1</code>:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ip netns exec 21580 tcpdump -n -i vnic-1 'icmp'
+14:55:01.011274 IP 192.168.1.3 &gt; 192.168.1.4: ICMP echo request, id 5376, seq 0, length 64
+14:55:01.011567 IP 192.168.1.4 &gt; 192.168.1.3: ICMP echo reply, id 5376, seq 0, length 64
+14:55:02.011385 IP 192.168.1.3 &gt; 192.168.1.4: ICMP echo request, id 5376, seq 1, length 64
+14:55:02.011551 IP 192.168.1.4 &gt; 192.168.1.3: ICMP echo reply, id 5376, seq 1, length 64
+14:55:03.011490 IP 192.168.1.3 &gt; 192.168.1.4: ICMP echo request, id 5376, seq 2, length 64
+14:55:03.011537 IP 192.168.1.4 &gt; 192.168.1.3: ICMP echo reply, id 5376, seq 2, length 64
+</code></pre></div></div>
+
+<p>Output of <code class="highlighter-rouge">mirror0-output</code>:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>tcpdump <span class="nt">-n</span> <span class="nt">-i</span> mirror0-output <span class="s1">'icmp'</span>
+14:55:01.011467 IP 192.168.1.3 <span class="o">&gt;</span> 192.168.1.4: ICMP <span class="nb">echo </span>request, <span class="nb">id </span>5376, <span class="nb">seq </span>0, length 64
+14:55:02.011529 IP 192.168.1.3 <span class="o">&gt;</span> 192.168.1.4: ICMP <span class="nb">echo </span>request, <span class="nb">id </span>5376, <span class="nb">seq </span>1, length 64
+14:55:03.011506 IP 192.168.1.3 <span class="o">&gt;</span> 192.168.1.4: ICMP <span class="nb">echo </span>request, <span class="nb">id </span>5376, <span class="nb">seq </span>2, length 64
+</code></pre></div></div>
+
+<p><strong>As we expected, only the egress traffic ov <code class="highlighter-rouge">ctn-1</code> get mirrored to the output port.</strong></p>
+
+<p>If you chose <code class="highlighter-rouge">ingress</code> or <code class="highlighter-rouge">both</code> in Section 3.2, results will be diffrent accordingly.</p>
+
+<h3 id="33-performance-test">3.3 Performance Test</h3>
+
+<p>The ICMP traffic we generated here is just used to verify the mirror works.</p>
+
+<p>To do performance benchmark, you should consider more powerful traffic
+generating tools, e.g. <a href="https://iperf.fr/iperf-download.php">iperf3</a>, <a href="https://pktgen-dpdk.readthedocs.io/en/latest/">Pktgen-DPDK</a>.
+Or, if you would like to replay a captured traffic, which may come from real environments,
+consider <a href="https://tcpreplay.appneta.com">tcprelay</a>.</p>
+
+<p>Quick Commands:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># send 100 packets</span>
+<span class="nv">$ </span>tcpreplay <span class="nt">--limit</span><span class="o">=</span>100 <span class="nt">-i</span> eth1 test.pcap
+
+<span class="c"># loop 10 times, 2x faster</span>
+<span class="nv">$ </span>tcpreplay <span class="nt">--loop</span><span class="o">=</span>10 <span class="nt">-x</span> 2 <span class="nt">-i</span> eth1 test.pcap
+</code></pre></div></div>
+
+<h3 id="34-add-more-traffic-source">3.4 Add More Traffic Source</h3>
+
+<p>Several ports may be mirrored to the same output, for example, to add <code class="highlighter-rouge">vnic-2</code>’s
+egress to the mirror:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./add-traffic-source.sh mirror0 vnic-2 egress
+
+<span class="nv">$ </span>./list-mirror.sh
+_uuid               : 762fe791-bf4a-4180-b0f8-d22627d3970f
+name                : <span class="s2">"mirror0"</span>
+output_port         : d74a2e7e-5d66-4a48-9261-7d080444964f
+select_all          : <span class="nb">false
+</span>select_dst_port     : <span class="o">[]</span>
+select_src_port     : <span class="o">[</span>29a6d786-5ad2-4e8a-afdb-2f099fbe0de1, e1ba2b63-f492-4f88-8c3e-e6fcb22c0008]
+statistics          : <span class="o">{</span><span class="nv">tx_bytes</span><span class="o">=</span>448, <span class="nv">tx_packets</span><span class="o">=</span>7<span class="o">}</span>
+</code></pre></div></div>
+
+<h3 id="34-cleanup">3.4 Cleanup</h3>
+
+<p>Delete all mirrors on a bridge, run:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./del-mirrors.sh
+</code></pre></div></div>
+
+<p>Delete output port:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ovs-vsctl del-port mirror0-output
+</code></pre></div></div>
+
+<h2 id="4-summary">4 Summary</h2>
+
+<p>In this post, we showed how to implement a simply traffic mirror environment
+with OVS port mirroring function.</p>
+
+<h2 id="references">References</h2>
+
+<ol>
+  <li><a href="https://en.wikipedia.org/wiki/Port_mirroring">Wikipedia: Port Mirroring</a></li>
+  <li><a href="">OpenvSwitch</a></li>
+  <li><a href="https://backreference.org/2014/06/17/port-mirroring-with-linux-bridges/">Port mirroring with Linux bridges</a></li>
+  <li><a href="/blog/play-with-container-network-if/">Play With Container Network Interface</a></li>
+  <li><a href="http://docs.openvswitch.org/en/latest/faq/configuration/">OVS FAQ: Port Mirroring</a></li>
+  <li><a href="https://tcpreplay.appneta.com">Tool: tcpreplay</a></li>
+  <li><a href="https://pktgen-dpdk.readthedocs.io/en/latest/">Pktgen-DPDK</a></li>
+  <li><a href="https://iperf.fr/iperf-download.php">iperf3</a></li>
+</ol>
+
+<h2 id="appendix-a-setup-environment">Appendix A: Setup Environment</h2>
+
+<p>Create OVS Bridge:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ovs-vsctl add-br br-int
+</code></pre></div></div>
+
+<p>With simple scripts from <a href="/blog/play-with-container-network-if/">Play With Container Network Interface</a>:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker run <span class="nt">-d</span> <span class="nt">--name</span> ctn-1 library/alpine:3.5 <span class="nb">sleep </span>3600d
+<span class="nv">$ </span>docker run <span class="nt">-d</span> <span class="nt">--name</span> ctn-2 library/alpine:3.5 <span class="nb">sleep </span>3600d
+
+<span class="nv">$ </span>./expose-netns.sh ctn-1
+<span class="nv">$ </span>./expose-netns.sh ctn-2
+<span class="nv">$ </span>ip netns
+21978 <span class="o">(</span><span class="nb">id</span>: 18<span class="o">)</span>
+21580 <span class="o">(</span><span class="nb">id</span>: 17<span class="o">)</span>
+
+<span class="nv">$ </span>./add-nic.sh ctn-1 vnic-1 br-int
+<span class="nv">$ </span>./add-nic.sh ctn-2 vnic-2 br-int
+
+<span class="nv">$ </span>ip netns <span class="nb">exec </span>21580 ifconfig vnic-1 192.168.1.3 netmask 255.255.255.0 up
+<span class="nv">$ </span>ip netns <span class="nb">exec </span>21978 ifconfig vnic-2 192.168.1.4 netmask 255.255.255.0 up
+</code></pre></div></div>
+
+<p>Check:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ovs-vsctl show
+    Bridge <span class="s2">"br-int"</span>
+        ...
+        Port <span class="s2">"vnic-1"</span>
+            Interface <span class="s2">"vnic-1"</span>
+                <span class="nb">type</span>: internal
+        Port <span class="s2">"vnic-2"</span>
+            Interface <span class="s2">"vnic-2"</span>
+                <span class="nb">type</span>: internal
+</code></pre></div></div>
+
+<h2 id="appendix-b-scripts-used-in-this-article">Appendix B: Scripts Used In This Article</h2>
+
+<ol>
+  <li><a href="/assets/img/traffic-mirror-with-ovs/add-mirror.sh">add-mirror.sh</a></li>
+  <li><a href="{/assets/img/traffic-mirror-with-ovs/add-port.sh">add-port.sh</a></li>
+  <li><a href="/assets/img/traffic-mirror-with-ovs/add-traffic-source.sh">add-traffic-source.sh</a></li>
+  <li><a href="/assets/img/traffic-mirror-with-ovs/del-mirrors.sh">del-mirrors.sh</a></li>
+  <li><a href="/assets/img/traffic-mirror-with-ovs/del-mirror.sh">del-mirror.sh</a></li>
+  <li><a href="/assets/img/traffic-mirror-with-ovs/del-port.sh">del-port.sh</a></li>
+  <li><a href="/assets/img/traffic-mirror-with-ovs/list-mirror.sh">list-mirror.sh</a></li>
+</ol>
+
+
+  <!-- POST NAVIGATION -->
+  <div class="postNav clearfix">
+     
+      <a class="prev" href="/blog/play-with-container-network-if/"><span>&laquo;&nbsp;Play With Container Network Interface</span>
+      
+    </a>
+      
+      
+      <a class="next" href="/blog/monitoring-hub/"><span>Monitoring Docker Registry&nbsp;&raquo;</span>
+       
+      </a>
+     
+  </div>
+</div>
+
+
+         
+
+      </div>
+   </div><!-- end .content -->
+
+   <div class="footer">
+   <div class="container">
+      <p class="copy">&copy; 2016-2019
+      <a href="https://arthurchiao.github.io">Arthur Chiao</a>, Powered by
+      <a href="http://jekyllrb.com">Jekyll </a>, Theme originated from
+      <a href="https://github.com/brianmaierjr/long-haul"> Long Haul.</a>
+
+      <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+      <span id="busuanzi_container_site_pv"> Site visits:
+          <span id="busuanzi_value_site_pv"></span>, powered by<a href="http://busuanzi.ibruce.info/"> busuanzi</a>
+      </span>
+
+      </p>
+
+      <div class="footer-links"> 
+         <ul class="noList"> 
+            
+            <li><a href="https://www.facebook.com/profile.php?id=100014334455077">
+                  <svg id="facebook-square" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M82.667,1H17.335C8.351,1,1,8.351,1,17.336v65.329c0,8.99,7.351,16.335,16.334,16.335h65.332 C91.652,99.001,99,91.655,99,82.665V17.337C99,8.353,91.652,1.001,82.667,1L82.667,1z M84.318,50H68.375v42.875H50V50h-8.855V35.973 H50v-9.11c0-12.378,5.339-19.739,19.894-19.739h16.772V22.3H72.967c-4.066-0.007-4.57,2.12-4.57,6.078l-0.023,7.594H86.75 l-2.431,14.027V50z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://linkedin.com/in/yanan-zhao-7691317b?trk=hp-identity-photo">
+                  <svg id="linkedin" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M99.001,19.428c-3.606,1.608-7.48,2.695-11.547,3.184c4.15-2.503,7.338-6.466,8.841-11.189 c-3.885,2.318-8.187,4-12.768,4.908c-3.667-3.931-8.893-6.387-14.676-6.387c-11.104,0-20.107,9.054-20.107,20.223 c0,1.585,0.177,3.128,0.52,4.609c-16.71-0.845-31.525-8.895-41.442-21.131C6.092,16.633,5.1,20.107,5.1,23.813 c0,7.017,3.55,13.208,8.945,16.834c-3.296-0.104-6.397-1.014-9.106-2.529c-0.002,0.085-0.002,0.17-0.002,0.255 c0,9.799,6.931,17.972,16.129,19.831c-1.688,0.463-3.463,0.71-5.297,0.71c-1.296,0-2.555-0.127-3.783-0.363 c2.559,8.034,9.984,13.882,18.782,14.045c-6.881,5.424-15.551,8.657-24.971,8.657c-1.623,0-3.223-0.096-4.796-0.282 c8.898,5.738,19.467,9.087,30.82,9.087c36.982,0,57.206-30.817,57.206-57.543c0-0.877-0.02-1.748-0.059-2.617 C92.896,27.045,96.305,23.482,99.001,19.428z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://github.com/ArthurChiao">
+                  <svg id="github" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M79.099,79.099 c-3.782,3.782-8.184,6.75-13.083,8.823c-1.245,0.526-2.509,0.989-3.79,1.387v-7.344c0-3.86-1.324-6.699-3.972-8.517 c1.659-0.16,3.182-0.383,4.57-0.67c1.388-0.287,2.855-0.702,4.402-1.245c1.547-0.543,2.935-1.189,4.163-1.938 c1.228-0.75,2.409-1.723,3.541-2.919s2.082-2.552,2.847-4.067s1.372-3.334,1.818-5.455c0.446-2.121,0.67-4.458,0.67-7.01 c0-4.945-1.611-9.155-4.833-12.633c1.467-3.828,1.308-7.991-0.478-12.489l-1.197-0.143c-0.829-0.096-2.321,0.255-4.474,1.053 c-2.153,0.798-4.57,2.105-7.249,3.924c-3.797-1.053-7.736-1.579-11.82-1.579c-4.115,0-8.039,0.526-11.772,1.579 c-1.69-1.149-3.294-2.097-4.809-2.847c-1.515-0.75-2.727-1.26-3.637-1.532c-0.909-0.271-1.754-0.439-2.536-0.503 c-0.782-0.064-1.284-0.079-1.507-0.048c-0.223,0.031-0.383,0.064-0.478,0.096c-1.787,4.53-1.946,8.694-0.478,12.489 c-3.222,3.477-4.833,7.688-4.833,12.633c0,2.552,0.223,4.889,0.67,7.01c0.447,2.121,1.053,3.94,1.818,5.455 c0.765,1.515,1.715,2.871,2.847,4.067s2.313,2.169,3.541,2.919c1.228,0.751,2.616,1.396,4.163,1.938 c1.547,0.543,3.014,0.957,4.402,1.245c1.388,0.287,2.911,0.511,4.57,0.67c-2.616,1.787-3.924,4.626-3.924,8.517v7.487 c-1.445-0.43-2.869-0.938-4.268-1.53c-4.899-2.073-9.301-5.041-13.083-8.823c-3.782-3.782-6.75-8.184-8.823-13.083 C9.934,60.948,8.847,55.56,8.847,50s1.087-10.948,3.231-16.016c2.073-4.899,5.041-9.301,8.823-13.083s8.184-6.75,13.083-8.823 C39.052,9.934,44.44,8.847,50,8.847s10.948,1.087,16.016,3.231c4.9,2.073,9.301,5.041,13.083,8.823 c3.782,3.782,6.75,8.184,8.823,13.083c2.143,5.069,3.23,10.457,3.23,16.016s-1.087,10.948-3.231,16.016 C85.848,70.915,82.88,75.317,79.099,79.099L79.099,79.099z"></path>
+                  </svg>
+            </a></li>
+             
+            
+            <li><a href="mailto:arthurchiao@hotmail.com">
+                  <svg id="mail" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M25.5,25.5h49 c0.874,0,1.723,0.188,2.502,0.542L50,57.544L22.998,26.041C23.777,25.687,24.626,25.499,25.5,25.5L25.5,25.5z M19.375,68.375v-36.75 c0-0.128,0.005-0.256,0.014-0.383l17.96,20.953L19.587,69.958C19.448,69.447,19.376,68.916,19.375,68.375L19.375,68.375z M74.5,74.5 h-49c-0.541,0-1.072-0.073-1.583-0.212l17.429-17.429L50,66.956l8.653-10.096l17.429,17.429C75.572,74.427,75.041,74.5,74.5,74.5 L74.5,74.5z M80.625,68.375c0,0.541-0.073,1.072-0.211,1.583L62.652,52.195l17.96-20.953c0.008,0.127,0.014,0.255,0.014,0.383 L80.625,68.375L80.625,68.375z"></path>
+                  </svg>
+            </a></li>
+            
+         </ul>
+      </div>
+   </div>
+</div><!-- end .footer -->
+
+   <!-- Add jQuery and other scripts -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src=""><\/script>')</script>
+<script src="/assets/js/dropcap.min.js"></script>
+<script src="/assets/js/responsive-nav.min.js"></script>
+<script src="/assets/js/scripts.js"></script>
+
+
+</body>
+
+</html>

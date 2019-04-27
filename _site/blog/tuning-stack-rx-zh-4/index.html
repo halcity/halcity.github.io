@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8" <![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9" <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+       })(window,document,'script','dataLayer','GTM-WP54B9K');</script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>[译] Linux网络栈监控和调优：接收数据 4</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+    <!-- Come and get me RSS readers -->
+    <link rel="alternate" type="application/rss+xml" title="ArthurChiao's Blog" href="http://0.0.0.0:4000/feed.xml" />
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <!--[if IE 8]><link rel="stylesheet" href="/assets/css/ie.css"><![endif]-->
+    <link rel="canonical" href="http://0.0.0.0:4000/blog/tuning-stack-rx-zh-4/">
+
+    <!-- Modernizr -->
+    <script src="/assets/js/modernizr.custom.15390.js" type="text/javascript"></script>
+
+    
+</head>
+
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WP54B9K"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+    <div class="header">
+     <div class="container">
+         <h1 class="logo"><a href="/">ArthurChiao's Blog</a></h1>
+         <nav class="nav-collapse">
+             <ul class="noList">
+                 
+                   
+                   
+                   <li class="element first  ">
+                     <a href="/index.html">Home</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles">Articles</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/articles-zh">Articles (中文)</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   ">
+                     <a href="/categories">Categories</a>
+                   </li> 
+                 
+                   
+                   
+                   <li class="element   last">
+                     <a href="/about">About</a>
+                   </li> 
+                 
+                 <!-- <li> <a href="https://github.com/arthurchiao/reading" target="_blank">Reading</a></li> -->
+                 <!-- <li> <a href="https://github.com/arthurchiao/" target="_blank">GitHub</a></li> -->
+             </ul>
+         </nav>
+     </div>
+ </div><!-- end .header -->
+
+
+   <div class="content">
+      <div class="container">
+         <div class="post">
+  
+  <h1 class="postTitle">[译] Linux网络栈监控和调优：接收数据 4</h1>
+  <p class="meta">2018-12-05 | <span class="time">27</span> Minute Read</p>
+
+  
+  
+  <h2 id="11-协议层注册">11 协议层注册</h2>
+
+<p>接下来我们看协议层注册自身的实现。</p>
+
+<p>本文会拿IP层作为例子，因为它最常用，大部分读者都很熟悉。</p>
+
+<h3 id="111-ip协议层">11.1 IP协议层</h3>
+
+<p>IP层在函数<code class="highlighter-rouge">inet_init</code>中将自身注册到<code class="highlighter-rouge">ptype_base</code>哈希表。
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/af_inet.c#L1788">net/ipv4/af_inet.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">dev_add_pack</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ip_packet_type</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p><code class="highlighter-rouge">struct packet_type</code>的实例<code class="highlighter-rouge">ip_packet_type</code>定义在
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/af_inet.c#L1673-L1676">net/ipv4/af_inet.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="k">struct</span> <span class="n">packet_type</span> <span class="n">ip_packet_type</span> <span class="n">__read_mostly</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">cpu_to_be16</span><span class="p">(</span><span class="n">ETH_P_IP</span><span class="p">),</span>
+        <span class="p">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">ip_rcv</span><span class="p">,</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p><code class="highlighter-rouge">__netif_receive_skb_core</code>会调用<code class="highlighter-rouge">deliver_skb</code> (前面介绍过了), 后者会调用<code class="highlighter-rouge">.func</code>
+方法(这个例子中就是<code class="highlighter-rouge">ip_rcv</code>)。</p>
+
+<h4 id="1111-ip_rcv">11.1.1 <code class="highlighter-rouge">ip_rcv</code></h4>
+
+<p><code class="highlighter-rouge">ip_rcv</code>方法的核心逻辑非常简单直接，此外就是一些数据合法性验证，统计计数器更新等
+等。它在最后会以netfilter的方式调用<code class="highlighter-rouge">ip_rcv_finish</code>方法。这样做的目的是，任何
+iptables规则都能在packet刚进入IP层协议的时候被应用，在其他处理之前。</p>
+
+<p>我们可以在<code class="highlighter-rouge">ip_rcv</code>结束的时候看到交给netfilter的代码：
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/ip_input.c#L453-L454">net/ipv4/ip_input.c</a></p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">return</span> <span class="n">NF_HOOK</span><span class="p">(</span><span class="n">NFPROTO_IPV4</span><span class="p">,</span> <span class="n">NF_INET_PRE_ROUTING</span><span class="p">,</span> <span class="n">skb</span><span class="p">,</span> <span class="n">dev</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">ip_rcv_finish</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h5 id="netfilter-and-iptables">netfilter and iptables</h5>
+
+<p>这里简单介绍下<code class="highlighter-rouge">netfilter</code>, <code class="highlighter-rouge">iptables</code>和<code class="highlighter-rouge">conntrack</code>。</p>
+
+<p><code class="highlighter-rouge">NF_HOOK_THRESH</code>会检查是否有filter被安装，并会适时地返回到IP协议层，避免过深的进
+入netfilter处理，以及在netfilter下面再做hook的iptables和conntrack。</p>
+
+<p>注意：<strong>如果你有很多或者很复杂的netfilter或iptables规则，这些规则都是在软中断的
+上下文中执行的，会导致网络延迟。</strong>但如果你就是需要一些规则的话，那这个性能损失看
+起来是无法避免的。</p>
+
+<h4 id="1112-ip_rcv_finish">11.1.2 <code class="highlighter-rouge">ip_rcv_finish</code></h4>
+
+<p>netfilter完成对数据的处理之后，就会调用<code class="highlighter-rouge">ip_rcv_finish</code>。当然，前提是netfilter没
+有决定丢掉这个包。</p>
+
+<p><code class="highlighter-rouge">ip_rcv_finish</code>开始的地方做了一次优化。为了能将包送到合适的目的地，需要一个路由
+子系统的<code class="highlighter-rouge">dst_entry</code>实例。为了获取这个实例，早期的代码调用了<code class="highlighter-rouge">early_demux</code>函数，从
+这个数据的目的端的高层协议中。</p>
+
+<p><code class="highlighter-rouge">early_demux</code>是一个优化项，试图路由这个包所需要的<code class="highlighter-rouge">dst_entry</code>实例，通过检查相应的
+实例是否缓存在<code class="highlighter-rouge">socket</code>实例上。
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/ip_input.c#L317-L327">net/ipv4/ip_input.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="p">(</span><span class="n">sysctl_ip_early_demux</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">skb_dst</span><span class="p">(</span><span class="n">skb</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">skb</span><span class="o">-&gt;</span><span class="n">sk</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">net_protocol</span> <span class="o">*</span><span class="n">ipprot</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">protocol</span> <span class="o">=</span> <span class="n">iph</span><span class="o">-&gt;</span><span class="n">protocol</span><span class="p">;</span>
+
+  <span class="n">ipprot</span> <span class="o">=</span> <span class="n">rcu_dereference</span><span class="p">(</span><span class="n">inet_protos</span><span class="p">[</span><span class="n">protocol</span><span class="p">]);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">ipprot</span> <span class="o">&amp;&amp;</span> <span class="n">ipprot</span><span class="o">-&gt;</span><span class="n">early_demux</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">ipprot</span><span class="o">-&gt;</span><span class="n">early_demux</span><span class="p">(</span><span class="n">skb</span><span class="p">);</span>
+    <span class="cm">/* must reload iph, skb-&gt;head might have changed */</span>
+    <span class="n">iph</span> <span class="o">=</span> <span class="n">ip_hdr</span><span class="p">(</span><span class="n">skb</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>可以看到，这个函数只有在<code class="highlighter-rouge">sysctl_ip_early_demux</code>为<code class="highlighter-rouge">true</code>的时候才有可能被执行。默
+认<code class="highlighter-rouge">early_demux</code>是打开的。下一节会介绍如何关闭它，以及为什么你可能会需要关闭它。</p>
+
+<p>如果这个优化打开了，但是并没有命中缓存（例如，这是第一个包），这个包就会被送到内
+核的路由子系统，在那里将会计算出一个<code class="highlighter-rouge">dst_entry</code>并赋给相应的字段。</p>
+
+<p>路由子系统完成工作后，会更新计数器，然后调用<code class="highlighter-rouge">dst_input(skb)</code>，后者会进一步调用
+<code class="highlighter-rouge">dst_entry</code>实例中的<code class="highlighter-rouge">input</code>方法，这个方法是一个函数指针，有路由子系统初始化。例如
+，如果packet的最终目的地是本机（local system），路由子系统会将<code class="highlighter-rouge">ip_local_deliver</code>赋
+给<code class="highlighter-rouge">input</code>。</p>
+
+<h5 id="调优-打开或关闭ip协议的early-demux选项">调优: 打开或关闭IP协议的early demux选项</h5>
+
+<p>关闭<code class="highlighter-rouge">early_demux</code>优化：</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ sudo sysctl -w net.ipv4.ip_early_demux=0
+</code></pre></div></div>
+
+<p>默认是1，即该功能默认是打开的。</p>
+
+<p>添加这个<code class="highlighter-rouge">sysctl</code>开关的原因是，一些用户报告说，在某些场景下<code class="highlighter-rouge">early_demux</code>优化会导
+致 ~5% 左右的吞吐量下降。</p>
+
+<h4 id="1113-ip_local_deliver">11.1.3 <code class="highlighter-rouge">ip_local_deliver</code></h4>
+
+<p>回忆我们看到的IP协议层过程：</p>
+
+<ol>
+  <li>调用<code class="highlighter-rouge">ip_rcv</code>做一些初始的bookkeeping</li>
+  <li>将包交给netfilter处理，同时还有一个回调函数，netfilter处理完毕后会调用这个函
+数</li>
+  <li>处理结束的时候，调用<code class="highlighter-rouge">ip_rcv_finish</code>，将数据包送到协议栈的更上层</li>
+</ol>
+
+<p><code class="highlighter-rouge">ip_local_deliver</code>的逻辑与此类似：
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/ip_input.c#L241-L258">net/ipv4/ip_input.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/*
+ *      Deliver IP Packets to the higher protocol layers.
+ */</span>
+<span class="kt">int</span> <span class="nf">ip_local_deliver</span><span class="p">(</span><span class="k">struct</span> <span class="n">sk_buff</span> <span class="o">*</span><span class="n">skb</span><span class="p">)</span>
+<span class="p">{</span>
+        <span class="cm">/*
+         *      Reassemble IP fragments.
+         */</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">ip_is_fragment</span><span class="p">(</span><span class="n">ip_hdr</span><span class="p">(</span><span class="n">skb</span><span class="p">)))</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">ip_defrag</span><span class="p">(</span><span class="n">skb</span><span class="p">,</span> <span class="n">IP_DEFRAG_LOCAL_DELIVER</span><span class="p">))</span>
+                        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">NF_HOOK</span><span class="p">(</span><span class="n">NFPROTO_IPV4</span><span class="p">,</span> <span class="n">NF_INET_LOCAL_IN</span><span class="p">,</span> <span class="n">skb</span><span class="p">,</span> <span class="n">skb</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span>
+                       <span class="n">ip_local_deliver_finish</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>只要packet没有在netfilter被drop，就会调用<code class="highlighter-rouge">ip_local_deliver_finish</code>函数。</p>
+
+<h4 id="1114-ip_local_deliver_finish">11.1.4 <code class="highlighter-rouge">ip_local_deliver_finish</code></h4>
+
+<p><code class="highlighter-rouge">ip_local_deliver_finish</code>从数据包中读取协议，寻找注册在这个协议上的<code class="highlighter-rouge">struct
+net_protocol</code>实例，并调用该实例中的回调方法。这样将包送到协议栈的更上层。</p>
+
+<h5 id="monitoring-ip-protocol-layer-statistics">Monitoring: IP protocol layer statistics</h5>
+
+<p>读取<code class="highlighter-rouge">/proc/net/snmp</code>获取详细的IP协议统计：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cat</span> /proc/net/snmp
+Ip: Forwarding DefaultTTL InReceives InHdrErrors InAddrErrors ForwDatagrams InUnknownProtos InDiscards InDelivers OutRequests OutDiscards OutNoRoutes ReasmTimeout ReasmReqds ReasmOKs ReasmFails FragOKs FragFails FragCreates
+Ip: 1 64 25922988125 0 0 15771700 0 0 25898327616 22789396404 12987882 51 1 10129840 2196520 1 0 0 0
+...
+</code></pre></div></div>
+
+<p>这个文件包含几个协议层的统计信息。先是IP层。</p>
+
+<p>与这些列相关的，IP层的统计类型都定义在<a href="https://github.com/torvalds/linux/blob/v3.13/include/uapi/linux/snmp.h#L10-L59">include/uapi/linux/snmp.h</a>：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">enum</span>
+<span class="p">{</span>
+  <span class="n">IPSTATS_MIB_NUM</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="cm">/* frequently written fields in fast path, kept in same cache line */</span>
+  <span class="n">IPSTATS_MIB_INPKTS</span><span class="p">,</span>     <span class="cm">/* InReceives */</span>
+  <span class="n">IPSTATS_MIB_INOCTETS</span><span class="p">,</span>     <span class="cm">/* InOctets */</span>
+  <span class="n">IPSTATS_MIB_INDELIVERS</span><span class="p">,</span>     <span class="cm">/* InDelivers */</span>
+  <span class="n">IPSTATS_MIB_OUTFORWDATAGRAMS</span><span class="p">,</span>   <span class="cm">/* OutForwDatagrams */</span>
+  <span class="n">IPSTATS_MIB_OUTPKTS</span><span class="p">,</span>      <span class="cm">/* OutRequests */</span>
+  <span class="n">IPSTATS_MIB_OUTOCTETS</span><span class="p">,</span>      <span class="cm">/* OutOctets */</span>
+
+  <span class="cm">/* ... */</span>
+</code></pre></div></div>
+
+<p>读取<code class="highlighter-rouge">/proc/net/netstat</code>获取更详细的IP层统计：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">proc</span><span class="o">/</span><span class="n">net</span><span class="o">/</span><span class="n">netstat</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">IpExt</span>
+<span class="n">IpExt</span><span class="o">:</span> <span class="n">InNoRoutes</span> <span class="n">InTruncatedPkts</span> <span class="n">InMcastPkts</span> <span class="n">OutMcastPkts</span> <span class="n">InBcastPkts</span> <span class="n">OutBcastPkts</span> <span class="n">InOctets</span> <span class="n">OutOctets</span> <span class="n">InMcastOctets</span> <span class="n">OutMcastOctets</span> <span class="n">InBcastOctets</span> <span class="n">OutBcastOctets</span> <span class="n">InCsumErrors</span> <span class="n">InNoECTPkts</span> <span class="n">InECT0Pktsu</span> <span class="n">InCEPkts</span>
+<span class="n">IpExt</span><span class="o">:</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">277959</span> <span class="mi">0</span> <span class="mi">14568040307695</span> <span class="mi">32991309088496</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">58649349</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span>
+</code></pre></div></div>
+
+<p>格式和<code class="highlighter-rouge">/proc/net/snmp</code>类似，除了每列的命字都一<code class="highlighter-rouge">IpExt</code>开头之外。</p>
+
+<p>一些有趣的统计：</p>
+
+<ul>
+  <li><code class="highlighter-rouge">InReceives</code>: The total number of IP packets that reached ip_rcv before any data integrity checks.</li>
+  <li><code class="highlighter-rouge">InHdrErrors</code>: Total number of IP packets with corrupted headers. The header was too short, too long, non-existent, had the wrong IP protocol version number, etc.</li>
+  <li><code class="highlighter-rouge">InAddrErrors</code>: Total number of IP packets where the host was unreachable.</li>
+  <li><code class="highlighter-rouge">ForwDatagrams</code>: Total number of IP packets that have been forwarded.</li>
+  <li><code class="highlighter-rouge">InUnknownProtos</code>: Total number of IP packets with unknown or unsupported protocol specified in the header.</li>
+  <li><code class="highlighter-rouge">InDiscards</code>: Total number of IP packets discarded due to memory allocation failure or checksum failure when packets are trimmed.</li>
+  <li><code class="highlighter-rouge">InDelivers</code>: Total number of IP packets successfully delivered to higher protocol layers. Keep in mind that those protocol layers may drop data even if the IP layer does not.</li>
+  <li>InCsumErrors: Total number of IP Packets with checksum errors.</li>
+</ul>
+
+<p>注意这些计数分别在IP层的不同地方被更新。由于代码一直在更新，重复计数或者计数错误
+的bug可能会引入。如果这些计数对你非常重要，强烈建议你阅读内核的相应源码，确定它
+们是在哪里被更新的，以及更新的对不对，是不是有bug。</p>
+
+<h3 id="112-高层协议注册">11.2 高层协议注册</h3>
+
+<p>本文介绍UDP处理函数的注册过程，TCP的注册过程与此一样，并且是在相同的时间注册的。</p>
+
+<p>在<code class="highlighter-rouge">net/ipv4/af_inet.c</code>中定义了UDP、TCP和ICMP协议的回调函数相关的数据结构，IP层处
+理完毕之后会调用相应的回调. From
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/af_inet.c#L1526-L1547">net/ipv4/af_inet.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">net_protocol</span> <span class="n">tcp_protocol</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">.</span><span class="n">early_demux</span>    <span class="o">=</span>       <span class="n">tcp_v4_early_demux</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">handler</span>        <span class="o">=</span>       <span class="n">tcp_v4_rcv</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">err_handler</span>    <span class="o">=</span>       <span class="n">tcp_v4_err</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">no_policy</span>      <span class="o">=</span>       <span class="mi">1</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">netns_ok</span>       <span class="o">=</span>       <span class="mi">1</span><span class="p">,</span>
+<span class="p">};</span>
+
+<span class="k">static</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">net_protocol</span> <span class="n">udp_protocol</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">.</span><span class="n">early_demux</span> <span class="o">=</span>  <span class="n">udp_v4_early_demux</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">handler</span> <span class="o">=</span>      <span class="n">udp_rcv</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">err_handler</span> <span class="o">=</span>  <span class="n">udp_err</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">no_policy</span> <span class="o">=</span>    <span class="mi">1</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">netns_ok</span> <span class="o">=</span>     <span class="mi">1</span><span class="p">,</span>
+<span class="p">};</span>
+
+<span class="k">static</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">net_protocol</span> <span class="n">icmp_protocol</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">.</span><span class="n">handler</span> <span class="o">=</span>      <span class="n">icmp_rcv</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">err_handler</span> <span class="o">=</span>  <span class="n">icmp_err</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">no_policy</span> <span class="o">=</span>    <span class="mi">1</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">netns_ok</span> <span class="o">=</span>     <span class="mi">1</span><span class="p">,</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>这些实例在<code class="highlighter-rouge">inet</code>地址族初始化的时候被注册。
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/af_inet.c#L1720-L1725">net/ipv4/af_inet.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="cm">/*
+  *      Add all the base protocols.
+  */</span>
+
+ <span class="k">if</span> <span class="p">(</span><span class="n">inet_add_protocol</span><span class="p">(</span><span class="o">&amp;</span><span class="n">icmp_protocol</span><span class="p">,</span> <span class="n">IPPROTO_ICMP</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+         <span class="n">pr_crit</span><span class="p">(</span><span class="s">"%s: Cannot add ICMP protocol</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+ <span class="k">if</span> <span class="p">(</span><span class="n">inet_add_protocol</span><span class="p">(</span><span class="o">&amp;</span><span class="n">udp_protocol</span><span class="p">,</span> <span class="n">IPPROTO_UDP</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+         <span class="n">pr_crit</span><span class="p">(</span><span class="s">"%s: Cannot add UDP protocol</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+ <span class="k">if</span> <span class="p">(</span><span class="n">inet_add_protocol</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tcp_protocol</span><span class="p">,</span> <span class="n">IPPROTO_TCP</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+         <span class="n">pr_crit</span><span class="p">(</span><span class="s">"%s: Cannot add TCP protocol</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>接下来我们详细查看UDP协议。上面可以看到，UDP的回调函数是<code class="highlighter-rouge">udp_rcv</code>。这是从IP层进
+入UDP层的入口。我们就从这里开始探索。</p>
+
+<h3 id="113-udp协议层">11.3 UDP协议层</h3>
+
+<p>UDP协议层的实现见<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/udp.c">net/ipv4/udp.c</a>。</p>
+
+<h4 id="1131-udp_rcv">11.3.1 <code class="highlighter-rouge">udp_rcv</code></h4>
+
+<p>这个函数只要一行，调用<code class="highlighter-rouge">__udp4_lib_rcv</code>接收UDP报文。</p>
+
+<h4 id="1132-__udp4_lib_rcv">11.3.2 <code class="highlighter-rouge">__udp4_lib_rcv</code></h4>
+
+<p><code class="highlighter-rouge">__udp4_lib_rcv</code>首先对包数据进行合法性检查，获取UDP头、UDP数据报长度、源地址、目
+标地址等信息。然后进行其他一些完整性检测和checksum验证。</p>
+
+<p>回忆前面的IP层内容，在送到更上面一层协议（这里是UDP）之前，会将一个<code class="highlighter-rouge">dst_entry</code>会关联到<code class="highlighter-rouge">skb</code>。</p>
+
+<p>如果对应的<code class="highlighter-rouge">dst_entry</code>找到了，并且有对应的socket，<code class="highlighter-rouge">__udp4_lib_rcv</code>会将packet放到<code class="highlighter-rouge">socket</code>的接收队列：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">sk</span> <span class="o">=</span> <span class="n">skb_steal_sock</span><span class="p">(</span><span class="n">skb</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">sk</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">dst_entry</span> <span class="o">*</span><span class="n">dst</span> <span class="o">=</span> <span class="n">skb_dst</span><span class="p">(</span><span class="n">skb</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">unlikely</span><span class="p">(</span><span class="n">sk</span><span class="o">-&gt;</span><span class="n">sk_rx_dst</span> <span class="o">!=</span> <span class="n">dst</span><span class="p">))</span>
+    <span class="n">udp_sk_rx_dst_set</span><span class="p">(</span><span class="n">sk</span><span class="p">,</span> <span class="n">dst</span><span class="p">);</span>
+
+  <span class="n">ret</span> <span class="o">=</span> <span class="n">udp_queue_rcv_skb</span><span class="p">(</span><span class="n">sk</span><span class="p">,</span> <span class="n">skb</span><span class="p">);</span>
+  <span class="n">sock_put</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+  <span class="cm">/* a return value &gt; 0 means to resubmit the input, but
+   * it wants the return to be -protocol, or 0
+   */</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">ret</span><span class="p">;</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</code></pre></div></div>
+
+<p>如果<code class="highlighter-rouge">early_demux</code>中没有关联socket信息，那此时会调用<code class="highlighter-rouge">__udp4_lib_lookup_skb</code>查找对应的socket。</p>
+
+<p>以上两种情况，最后都会将packet放到socket的接收队列：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">ret</span> <span class="o">=</span> <span class="n">udp_queue_rcv_skb</span><span class="p">(</span><span class="n">sk</span><span class="p">,</span> <span class="n">skb</span><span class="p">);</span>
+<span class="n">sock_put</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>如果socket没有找到，数据报(datagram)会被丢弃：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/* No socket. Drop packet silently, if checksum is wrong */</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">udp_lib_checksum_complete</span><span class="p">(</span><span class="n">skb</span><span class="p">))</span>
+        <span class="k">goto</span> <span class="n">csum_error</span><span class="p">;</span>
+
+<span class="n">UDP_INC_STATS_BH</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">UDP_MIB_NOPORTS</span><span class="p">,</span> <span class="n">proto</span> <span class="o">==</span> <span class="n">IPPROTO_UDPLITE</span><span class="p">);</span>
+<span class="n">icmp_send</span><span class="p">(</span><span class="n">skb</span><span class="p">,</span> <span class="n">ICMP_DEST_UNREACH</span><span class="p">,</span> <span class="n">ICMP_PORT_UNREACH</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+<span class="cm">/*
+ * Hmm.  We got an UDP packet to a port to which we
+ * don't wanna listen.  Ignore it.
+ */</span>
+<span class="n">kfree_skb</span><span class="p">(</span><span class="n">skb</span><span class="p">);</span>
+<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h4 id="1133-udp_queue_rcv_skb">11.3.3 <code class="highlighter-rouge">udp_queue_rcv_skb</code></h4>
+
+<p>这个函数的前面部分所做的工作：</p>
+
+<ol>
+  <li>判断和这个数据报关联的socket是不是
+<a href="https://tools.ietf.org/html/rfc3948">encapsulation</a> socket。如果是，将packet
+送到该层的处理函数</li>
+  <li>判断这个数据报是不是UDP-Lite数据报，做一些完整性检测</li>
+  <li>验证UDP数据报的校验和，如果校验失败，就丢弃</li>
+</ol>
+
+<p>最后，我们来到了socket的接收队列逻辑，判断队列是不是满了：
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/udp.c#L1548-L1549">net/ipv4/udp.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="p">(</span><span class="n">sk_rcvqueues_full</span><span class="p">(</span><span class="n">sk</span><span class="p">,</span> <span class="n">skb</span><span class="p">,</span> <span class="n">sk</span><span class="o">-&gt;</span><span class="n">sk_rcvbuf</span><span class="p">))</span>
+  <span class="k">goto</span> <span class="n">drop</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h4 id="1334-sk_rcvqueues_full">13.3.4 <code class="highlighter-rouge">sk_rcvqueues_full</code></h4>
+
+<p>定义如下：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/*
+ * Take into account size of receive queue and backlog queue
+ * Do not take into account this skb truesize,
+ * to allow even a single big packet to come.
+ */</span>
+<span class="k">static</span> <span class="kr">inline</span> <span class="n">bool</span> <span class="nf">sk_rcvqueues_full</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="n">sock</span> <span class="o">*</span><span class="n">sk</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sk_buff</span> <span class="o">*</span><span class="n">skb</span><span class="p">,</span>
+                                     <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">limit</span><span class="p">)</span>
+<span class="p">{</span>
+        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">qsize</span> <span class="o">=</span> <span class="n">sk</span><span class="o">-&gt;</span><span class="n">sk_backlog</span><span class="p">.</span><span class="n">len</span> <span class="o">+</span> <span class="n">atomic_read</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sk</span><span class="o">-&gt;</span><span class="n">sk_rmem_alloc</span><span class="p">);</span>
+
+        <span class="k">return</span> <span class="n">qsize</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Tuning these values is a bit tricky as there are many things that can be adjusted.</p>
+
+<h5 id="调优-socket-receive-queue-memory">调优: Socket receive queue memory</h5>
+
+<p>上面看到，判断socket接收队列是否满了是和<code class="highlighter-rouge">sk-&gt;sk_rcvbuf</code>做比较。
+这个值可以被两个sysctl参数控制：最大值和默认值：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>sysctl <span class="nt">-w</span> net.core.rmem_max<span class="o">=</span>8388608
+
+<span class="nv">$ </span><span class="nb">sudo </span>sysctl <span class="nt">-w</span> net.core.rmem_default<span class="o">=</span>8388608
+</code></pre></div></div>
+
+<p>你也可以在你的应用里调用<code class="highlighter-rouge">setsockopt</code>带上<code class="highlighter-rouge">SO_RCVBUF</code>来修改这个值(<code class="highlighter-rouge">sk-&gt;sk_rcvbuf</code>)
+，能设置的最大值不能超过<code class="highlighter-rouge">net.core.rmem_max</code>。</p>
+
+<p>但是，你也可以<code class="highlighter-rouge">setsockopt</code>带上<code class="highlighter-rouge">SO_RCVBUFFORCE</code>来覆盖<code class="highlighter-rouge">net.core.rmem_max</code>，但是执
+行应用的用户要有<code class="highlighter-rouge">CAP_NET_ADMIN</code>权限。</p>
+
+<p><code class="highlighter-rouge">skb_set_owner_r</code>函数设置UDP数据包的owner，并会更新计数器<code class="highlighter-rouge">sk-&gt;sk_rmem_alloc</code>。
+我们接下来会看到。</p>
+
+<p><code class="highlighter-rouge">sk_add_backlog</code>函数会更新<code class="highlighter-rouge">sk-&gt;sk_backlog.len</code>计数，后面看。</p>
+
+<h4 id="1135-udp_queue_rcv_skb">11.3.5 <code class="highlighter-rouge">udp_queue_rcv_skb</code></h4>
+
+<p>判断queue未满之后，就会将数据报放到里面：
+<a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/udp.c#L1554-L1561">net/ipv4/udp.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">bh_lock_sock</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">sock_owned_by_user</span><span class="p">(</span><span class="n">sk</span><span class="p">))</span>
+  <span class="n">rc</span> <span class="o">=</span> <span class="n">__udp_queue_rcv_skb</span><span class="p">(</span><span class="n">sk</span><span class="p">,</span> <span class="n">skb</span><span class="p">);</span>
+<span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="n">sk_add_backlog</span><span class="p">(</span><span class="n">sk</span><span class="p">,</span> <span class="n">skb</span><span class="p">,</span> <span class="n">sk</span><span class="o">-&gt;</span><span class="n">sk_rcvbuf</span><span class="p">))</span> <span class="p">{</span>
+  <span class="n">bh_unlock_sock</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+  <span class="k">goto</span> <span class="n">drop</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="n">bh_unlock_sock</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+
+<span class="k">return</span> <span class="n">rc</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>第一步先判断有没有用户空间的程序正在这个socket上进行系统调用。如果没有，就可以调用<code class="highlighter-rouge">__udp_queue_rcv_skb</code>
+将数据报放到接收队列；如果有，就调用<code class="highlighter-rouge">sk_add_backlog</code>将它放到backlog队列。</p>
+
+<p>当用户空间程序释放在这个socket上的系统调用时（通过向内核调用<code class="highlighter-rouge">release_sock</code>），这
+个数据报就从backlog移动到了接收队列。</p>
+
+<h4 id="1137-__udp_queue_rcv_skb">11.3.7 <code class="highlighter-rouge">__udp_queue_rcv_skb</code></h4>
+
+<p>这个函数调用<code class="highlighter-rouge">sock_queue_rcv_skb</code>将数据报送到socket接收队列；如果失败，更新统计计数并释放skb。</p>
+
+<p><a href="https://github.com/torvalds/linux/blob/v3.13/net/ipv4/udp.c#L1431-L1443">net/ipv4/udp.c</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">rc</span> <span class="o">=</span> <span class="n">sock_queue_rcv_skb</span><span class="p">(</span><span class="n">sk</span><span class="p">,</span> <span class="n">skb</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">is_udplite</span> <span class="o">=</span> <span class="n">IS_UDPLITE</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+
+  <span class="cm">/* Note that an ENOMEM error is charged twice */</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">==</span> <span class="o">-</span><span class="n">ENOMEM</span><span class="p">)</span>
+    <span class="n">UDP_INC_STATS_BH</span><span class="p">(</span><span class="n">sock_net</span><span class="p">(</span><span class="n">sk</span><span class="p">),</span> <span class="n">UDP_MIB_RCVBUFERRORS</span><span class="p">,</span><span class="n">is_udplite</span><span class="p">);</span>
+
+  <span class="n">UDP_INC_STATS_BH</span><span class="p">(</span><span class="n">sock_net</span><span class="p">(</span><span class="n">sk</span><span class="p">),</span> <span class="n">UDP_MIB_INERRORS</span><span class="p">,</span> <span class="n">is_udplite</span><span class="p">);</span>
+  <span class="n">kfree_skb</span><span class="p">(</span><span class="n">skb</span><span class="p">);</span>
+  <span class="n">trace_udp_fail_queue_rcv_skb</span><span class="p">(</span><span class="n">rc</span><span class="p">,</span> <span class="n">sk</span><span class="p">);</span>
+  <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h4 id="1138-monitoring-udp-protocol-layer-statistics">11.3.8 Monitoring: UDP protocol layer statistics</h4>
+
+<p>以下文件可以获取非常有用的UDP统计：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/proc/net/snmp
+/proc/net/udp
+/proc/net/snmp
+</code></pre></div></div>
+
+<h5 id="监控udp协议统计procnetsnmp">监控UDP协议统计：<code class="highlighter-rouge">/proc/net/snmp</code></h5>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cat</span> /proc/net/snmp | <span class="nb">grep </span>Udp<span class="se">\:</span>
+Udp: InDatagrams NoPorts InErrors OutDatagrams RcvbufErrors SndbufErrors
+Udp: 16314 0 0 17161 0 0
+</code></pre></div></div>
+
+<p>Much like the detailed statistics found in this file for the IP protocol, you will need to read the protocol layer source to determine exactly when and where these values are incremented.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>InDatagrams: Incremented when recvmsg was used by a userland program to <span class="nb">read </span>datagram. Also incremented when a UDP packet is encapsulated and sent back <span class="k">for </span>processing.
+NoPorts: Incremented when UDP packets arrive destined <span class="k">for </span>a port where no program is listening.
+InErrors: Incremented <span class="k">in </span>several cases: no memory <span class="k">in </span>the receive queue, when a bad checksum is seen, and <span class="k">if </span>sk_add_backlog fails to add the datagram.
+OutDatagrams: Incremented when a UDP packet is handed down without error to the IP protocol layer to be sent.
+RcvbufErrors: Incremented when sock_queue_rcv_skb reports that no memory is available<span class="p">;</span> this happens <span class="k">if </span>sk-&gt;sk_rmem_alloc is greater than or equal to sk-&gt;sk_rcvbuf.
+SndbufErrors: Incremented <span class="k">if </span>the IP protocol layer reported an error when trying to send the packet and no error queue has been setup. Also incremented <span class="k">if </span>no send queue space or kernel memory are available.
+InCsumErrors: Incremented when a UDP checksum failure is detected. Note that <span class="k">in </span>all cases I could find, InCsumErrors is incrememnted at the same <span class="nb">time </span>as InErrors. Thus, InErrors - InCsumErros should yield the count of memory related errors on the receive side.
+</code></pre></div></div>
+
+<h5 id="监控udp-socket统计procnetudp">监控UDP socket统计：<code class="highlighter-rouge">/proc/net/udp</code></h5>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cat</span> /proc/net/udp
+  sl  local_address rem_address   st tx_queue rx_queue <span class="nb">tr </span>tm-&gt;when retrnsmt   uid  <span class="nb">timeout </span>inode ref pointer drops
+  515: 00000000:B346 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 7518 2 0000000000000000 0
+  558: 00000000:0371 00000000:0000 07 00000000:00000000 00:00000000 00000000     0        0 7408 2 0000000000000000 0
+  588: 0100007F:038F 00000000:0000 07 00000000:00000000 00:00000000 00000000     0        0 7511 2 0000000000000000 0
+  769: 00000000:0044 00000000:0000 07 00000000:00000000 00:00000000 00000000     0        0 7673 2 0000000000000000 0
+  812: 00000000:006F 00000000:0000 07 00000000:00000000 00:00000000 00000000     0        0 7407 2 0000000000000000 0
+</code></pre></div></div>
+
+<p>The first line describes each of the fields in the lines following:</p>
+
+<ul>
+  <li><code class="highlighter-rouge">sl</code>: Kernel hash slot for the socket</li>
+  <li><code class="highlighter-rouge">local_address</code>: Hexadecimal local address of the socket and port number, separated by :.</li>
+  <li><code class="highlighter-rouge">rem_address</code>: Hexadecimal remote address of the socket and port number, separated by :.</li>
+  <li><code class="highlighter-rouge">st</code>: The state of the socket. Oddly enough, the UDP protocol layer seems to use some TCP socket states. In the example above, 7 is TCP_CLOSE.</li>
+  <li><code class="highlighter-rouge">tx_queue</code>: The amount of memory allocated in the kernel for outgoing UDP datagrams.</li>
+  <li><code class="highlighter-rouge">rx_queue</code>: The amount of memory allocated in the kernel for incoming UDP datagrams.</li>
+  <li><code class="highlighter-rouge">tr</code>, tm-&gt;when, retrnsmt: These fields are unused by the UDP protocol layer.</li>
+  <li><code class="highlighter-rouge">uid</code>: The effective user id of the user who created this socket.</li>
+  <li><code class="highlighter-rouge">timeout</code>: Unused by the UDP protocol layer.</li>
+  <li><code class="highlighter-rouge">inode</code>: The inode number corresponding to this socket. You can use this to help you determine which user process has this socket open. Check /proc/[pid]/fd, which will contain symlinks to socket[:inode].</li>
+  <li><code class="highlighter-rouge">ref</code>: The current reference count for the socket.</li>
+  <li><code class="highlighter-rouge">pointer</code>: The memory address in the kernel of the struct sock.</li>
+  <li><code class="highlighter-rouge">drops</code>: The number of datagram drops associated with this socket. Note that this does not include any drops related to sending datagrams (on corked UDP sockets or otherwise); this is only incremented in receive paths as of the kernel version examined by this blog post.</li>
+</ul>
+
+<p>打印这些信息的代码见<a href="https://github.com/torvalds/linux/blob/master/net/ipv4/udp.c#L2396-L2431">net/ipv4/udp.c</a>.</p>
+
+<h3 id="114-将数据放到socket队列">11.4 将数据放到socket队列</h3>
+
+<p>网络数据通过<code class="highlighter-rouge">sock_queue_rcv</code>进入socket的接收队列。这个函数在将数据报最终送到接收
+队列之前，会做几件事情：</p>
+
+<ol>
+  <li>检查socket已分配的内存，如果超过了receive buffer的大小，丢弃这个包并更新计数</li>
+  <li>应用<code class="highlighter-rouge">sk_filter</code>，这允许BPF（Berkeley Packet Filter）过滤器在socket上被应用</li>
+  <li>执行<code class="highlighter-rouge">sk_rmem_scedule</code>，确保有足够大的receive buffer接收这个数据报</li>
+  <li>执行<code class="highlighter-rouge">skb_set_owner_r</code>，这会计算数据报的长度并更新<code class="highlighter-rouge">sk-&gt;sk_rmem_alloc</code>计数</li>
+  <li>调用<code class="highlighter-rouge">__skb_queue_tail</code>将数据加到队列尾端</li>
+</ol>
+
+<p>最后，所有在这个socket上等待数据的进程都收到一个通知通过<code class="highlighter-rouge">sk_data_ready</code>通知处理
+函数。</p>
+
+<p><strong>这就是一个数据包从到达机器开始，依次穿过协议栈，到达socket，最终被用户程序读取
+的过程。</strong></p>
+
+
+  <!-- POST NAVIGATION -->
+  <div class="postNav clearfix">
+     
+      <a class="prev" href="/blog/tuning-stack-rx-zh-3/"><span>&laquo;&nbsp;[译] Linux网络栈监控和调优：接收数据 3</span>
+      
+    </a>
+      
+      
+      <a class="next" href="/blog/tuning-stack-rx-zh-5/"><span>[译] Linux网络栈监控和调优：接收数据 5&nbsp;&raquo;</span>
+       
+      </a>
+     
+  </div>
+</div>
+
+
+         
+
+      </div>
+   </div><!-- end .content -->
+
+   <div class="footer">
+   <div class="container">
+      <p class="copy">&copy; 2016-2019
+      <a href="https://arthurchiao.github.io">Arthur Chiao</a>, Powered by
+      <a href="http://jekyllrb.com">Jekyll </a>, Theme originated from
+      <a href="https://github.com/brianmaierjr/long-haul"> Long Haul.</a>
+
+      <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+      <span id="busuanzi_container_site_pv"> Site visits:
+          <span id="busuanzi_value_site_pv"></span>, powered by<a href="http://busuanzi.ibruce.info/"> busuanzi</a>
+      </span>
+
+      </p>
+
+      <div class="footer-links"> 
+         <ul class="noList"> 
+            
+            <li><a href="https://www.facebook.com/profile.php?id=100014334455077">
+                  <svg id="facebook-square" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M82.667,1H17.335C8.351,1,1,8.351,1,17.336v65.329c0,8.99,7.351,16.335,16.334,16.335h65.332 C91.652,99.001,99,91.655,99,82.665V17.337C99,8.353,91.652,1.001,82.667,1L82.667,1z M84.318,50H68.375v42.875H50V50h-8.855V35.973 H50v-9.11c0-12.378,5.339-19.739,19.894-19.739h16.772V22.3H72.967c-4.066-0.007-4.57,2.12-4.57,6.078l-0.023,7.594H86.75 l-2.431,14.027V50z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://linkedin.com/in/yanan-zhao-7691317b?trk=hp-identity-photo">
+                  <svg id="linkedin" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M99.001,19.428c-3.606,1.608-7.48,2.695-11.547,3.184c4.15-2.503,7.338-6.466,8.841-11.189 c-3.885,2.318-8.187,4-12.768,4.908c-3.667-3.931-8.893-6.387-14.676-6.387c-11.104,0-20.107,9.054-20.107,20.223 c0,1.585,0.177,3.128,0.52,4.609c-16.71-0.845-31.525-8.895-41.442-21.131C6.092,16.633,5.1,20.107,5.1,23.813 c0,7.017,3.55,13.208,8.945,16.834c-3.296-0.104-6.397-1.014-9.106-2.529c-0.002,0.085-0.002,0.17-0.002,0.255 c0,9.799,6.931,17.972,16.129,19.831c-1.688,0.463-3.463,0.71-5.297,0.71c-1.296,0-2.555-0.127-3.783-0.363 c2.559,8.034,9.984,13.882,18.782,14.045c-6.881,5.424-15.551,8.657-24.971,8.657c-1.623,0-3.223-0.096-4.796-0.282 c8.898,5.738,19.467,9.087,30.82,9.087c36.982,0,57.206-30.817,57.206-57.543c0-0.877-0.02-1.748-0.059-2.617 C92.896,27.045,96.305,23.482,99.001,19.428z"></path>
+                  </svg>
+            </a></li>
+            
+            
+            <li><a href="https://github.com/ArthurChiao">
+                  <svg id="github" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M79.099,79.099 c-3.782,3.782-8.184,6.75-13.083,8.823c-1.245,0.526-2.509,0.989-3.79,1.387v-7.344c0-3.86-1.324-6.699-3.972-8.517 c1.659-0.16,3.182-0.383,4.57-0.67c1.388-0.287,2.855-0.702,4.402-1.245c1.547-0.543,2.935-1.189,4.163-1.938 c1.228-0.75,2.409-1.723,3.541-2.919s2.082-2.552,2.847-4.067s1.372-3.334,1.818-5.455c0.446-2.121,0.67-4.458,0.67-7.01 c0-4.945-1.611-9.155-4.833-12.633c1.467-3.828,1.308-7.991-0.478-12.489l-1.197-0.143c-0.829-0.096-2.321,0.255-4.474,1.053 c-2.153,0.798-4.57,2.105-7.249,3.924c-3.797-1.053-7.736-1.579-11.82-1.579c-4.115,0-8.039,0.526-11.772,1.579 c-1.69-1.149-3.294-2.097-4.809-2.847c-1.515-0.75-2.727-1.26-3.637-1.532c-0.909-0.271-1.754-0.439-2.536-0.503 c-0.782-0.064-1.284-0.079-1.507-0.048c-0.223,0.031-0.383,0.064-0.478,0.096c-1.787,4.53-1.946,8.694-0.478,12.489 c-3.222,3.477-4.833,7.688-4.833,12.633c0,2.552,0.223,4.889,0.67,7.01c0.447,2.121,1.053,3.94,1.818,5.455 c0.765,1.515,1.715,2.871,2.847,4.067s2.313,2.169,3.541,2.919c1.228,0.751,2.616,1.396,4.163,1.938 c1.547,0.543,3.014,0.957,4.402,1.245c1.388,0.287,2.911,0.511,4.57,0.67c-2.616,1.787-3.924,4.626-3.924,8.517v7.487 c-1.445-0.43-2.869-0.938-4.268-1.53c-4.899-2.073-9.301-5.041-13.083-8.823c-3.782-3.782-6.75-8.184-8.823-13.083 C9.934,60.948,8.847,55.56,8.847,50s1.087-10.948,3.231-16.016c2.073-4.899,5.041-9.301,8.823-13.083s8.184-6.75,13.083-8.823 C39.052,9.934,44.44,8.847,50,8.847s10.948,1.087,16.016,3.231c4.9,2.073,9.301,5.041,13.083,8.823 c3.782,3.782,6.75,8.184,8.823,13.083c2.143,5.069,3.23,10.457,3.23,16.016s-1.087,10.948-3.231,16.016 C85.848,70.915,82.88,75.317,79.099,79.099L79.099,79.099z"></path>
+                  </svg>
+            </a></li>
+             
+            
+            <li><a href="mailto:arthurchiao@hotmail.com">
+                  <svg id="mail" class="custom-icon" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" style="height: 30px; width: 30px;"><circle class="outer-shape" cx="50" cy="50" r="48" style="opacity: 1;"></circle>
+                  <path class="inner-shape" style="opacity: 1;" transform="translate(25,25) scale(0.5)" d="M50,1C22.938,1,1,22.938,1,50s21.938,49,49,49s49-21.938,49-49S77.062,1,50,1z M25.5,25.5h49 c0.874,0,1.723,0.188,2.502,0.542L50,57.544L22.998,26.041C23.777,25.687,24.626,25.499,25.5,25.5L25.5,25.5z M19.375,68.375v-36.75 c0-0.128,0.005-0.256,0.014-0.383l17.96,20.953L19.587,69.958C19.448,69.447,19.376,68.916,19.375,68.375L19.375,68.375z M74.5,74.5 h-49c-0.541,0-1.072-0.073-1.583-0.212l17.429-17.429L50,66.956l8.653-10.096l17.429,17.429C75.572,74.427,75.041,74.5,74.5,74.5 L74.5,74.5z M80.625,68.375c0,0.541-0.073,1.072-0.211,1.583L62.652,52.195l17.96-20.953c0.008,0.127,0.014,0.255,0.014,0.383 L80.625,68.375L80.625,68.375z"></path>
+                  </svg>
+            </a></li>
+            
+         </ul>
+      </div>
+   </div>
+</div><!-- end .footer -->
+
+   <!-- Add jQuery and other scripts -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src=""><\/script>')</script>
+<script src="/assets/js/dropcap.min.js"></script>
+<script src="/assets/js/responsive-nav.min.js"></script>
+<script src="/assets/js/scripts.js"></script>
+
+
+</body>
+
+</html>
