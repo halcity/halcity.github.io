@@ -1,7 +1,7 @@
-title: ArthurChiao's Blog
-description: ArthurChiao's Blog
+title: halcity
+description: Ryan's Blog
 
-url: arthurchiao.github.io
+url: halcity.github.io
 baseurl: ""
 paginate_path: "blog/page:num/"
 permalink: blog/:title/
@@ -16,8 +16,6 @@ navigation:
    url: /index.html
  - title: Articles
    url: /articles
- - title: Articles (中文)
-   url: /articles-zh
  - title: Categories
    url: /categories
  - title: About
@@ -27,7 +25,7 @@ social:
    github: ArthurChiao
    linkedin: in/yanan-zhao-7691317b?trk=hp-identity-photo
    facebook: profile.php?id=100014334455077
-   email: arthurchiao@hotmail.com
+   email: im@napolin.cn
 
 defaults:
   -
@@ -36,8 +34,3 @@ defaults:
       type: "pages"
     values:
       comments: false
-
-google_analytics: "UA-89960542-1"
-
-# development configurations
-host: 0.0.0.0
