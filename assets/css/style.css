@@ -949,6 +949,7 @@ dd {
         border:none
     }
     .header nav ul li a {
+        font-family: Arial;
         color:white;
         font-size:.9em;
         text-decoration:none;
