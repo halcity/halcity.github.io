@@ -44,7 +44,9 @@ init 常用主要参数：
 - --feature-gates=CoreDNS: 是否使用CoreDNS，值为true/false，CoreDNS插件在1.10中提升到了Beta阶段，最终会成为Kubernetes的缺省选项。
 
 **7.  配置Flannel网络组件**
-``` [root@k8smaster ~]# kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml``
+``` bash
+[root@k8smaster ~]# kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+```
 
 **8. 修改Role角色，容忍Mster污点**
 ``` bash
