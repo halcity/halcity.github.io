@@ -23,10 +23,10 @@ title: DCRYAN'S BLOG
   <!-- Pagination links -->
   <div class="pagination">
     {% if paginator.previous_page %}
-      <a href="{{ paginator.previous_page_path | prepend: site.baseurl }}" class="previous button__outline">Newer Posts</a>
+      <a href="{{ paginator.previous_page_path | prepend: site.baseurl }}" class="previous button__outline">更新</a>
     {% endif %}
     {% if paginator.next_page %}
-      <a href="{{ paginator.next_page_path | prepend: site.baseurl }}" class="next button__outline">Older Posts</a>
+      <a href="{{ paginator.next_page_path | prepend: site.baseurl }}" class="next button__outline">往前</a>
     {% endif %}
   </div>
 </div>
