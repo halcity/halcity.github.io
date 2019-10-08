@@ -26,6 +26,7 @@ enabled=1
 [root@master ~]# yum install -y kubelet kubeadm kubectl
 ```
 **4. 查看kubeadm初始化所需image**
+
 ``` [root@k8smaster ~]# kubeadm config images list ```
 
 **5. 提前下载image并更改标签（方法一）**
@@ -37,6 +38,7 @@ docker rmi gcr.azk8s.cn/kube-apiserver:$K8S_VERSION
 （或者用py写的一个wrapper：https://github.com/silenceshell/docker-wrapper）
 
 **6. 初始化kubeadm**
+
 ``` [root@k8smaster ~]# sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --kubernetes-version=1.16.0 ```
 
 init 常用主要参数：
