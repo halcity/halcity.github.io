@@ -10,6 +10,7 @@ net.bridge.bridge-nf-call-iptables = 1
 ```
 
 **2. 安装docker**
+
 使用清华或者ustc的镜像源进行安装
 
 **3. 安装kubelet kubeadm kubectl**
