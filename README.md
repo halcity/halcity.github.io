@@ -1,2 +1,0 @@
-
-# halcity.github.io
