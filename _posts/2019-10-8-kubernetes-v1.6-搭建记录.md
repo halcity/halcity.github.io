@@ -35,7 +35,7 @@ docker pull gcr.azk8s.cn/kube-apiserver:$K8S_VERSION
 docker tag gcr.azk8s.cn/kube-apiserver:$K8S_VERSION k8s.gcr.io/kube-apiserver:$K8S_VERSION
 docker rmi gcr.azk8s.cn/kube-apiserver:$K8S_VERSION
 ```
-（或者用py写的一个wrapper：https://github.com/silenceshell/docker-wrapper）
+或者用py写的一个wrapper：https://github.com/silenceshell/docker-wrapper
 
 **6. 初始化kubeadm**
 
