@@ -9,7 +9,7 @@ net.bridge.bridge-nf-call-iptables = 1
 [root@master ~]# sysctl -p
 ```
 
-**2. 安装docker**
+**2. 安装docker-ce**
 
 使用清华或者ustc的镜像源进行安装
 
