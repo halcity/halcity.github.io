@@ -12,19 +12,19 @@ gems: [jekyll-paginate]
 paginate: 5
 
 navigation:
- - title: HOME
+ - title: 主页
    url: /index.html
- - title: ARTICLES
+ - title: 文章
    url: /articles
- - title: CATEGORIES
+ - title: 分类
    url: /categories
- - title: ABOUT
+ - title: 关于
    url: /about
 
 social:
-   github: ArthurChiao
-   linkedin: in/yanan-zhao-7691317b?trk=hp-identity-photo
-   facebook: profile.php?id=100014334455077
+   github: halcity
+   linkedin: 
+   facebook: 
    email: im@napolin.cn
 
 defaults:
