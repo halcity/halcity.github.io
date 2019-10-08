@@ -1,0 +1,36 @@
+title: DCRYAN'S BLOG
+description: DCRYAN'S BLOG
+
+url: dcryan.com
+baseurl: ""
+paginate_path: "blog/page:num/"
+permalink: blog/:title/
+
+markdown: kramdown
+highlighter: rouge
+gems: [jekyll-paginate]
+paginate: 5
+
+navigation:
+ - title: HOME
+   url: /index.html
+ - title: ARTICLES
+   url: /articles
+ - title: CATEGORIES
+   url: /categories
+ - title: ABOUT
+   url: /about
+
+social:
+   github: ArthurChiao
+   linkedin: in/yanan-zhao-7691317b?trk=hp-identity-photo
+   facebook: profile.php?id=100014334455077
+   email: im@napolin.cn
+
+defaults:
+  -
+    scope:
+      path: ""
+      type: "pages"
+    values:
+      comments: false
