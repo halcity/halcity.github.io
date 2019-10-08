@@ -52,7 +52,7 @@ init 常用主要参数：
 [root@k8smaster ~]# kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 ```
 
-**8. 修改Role角色，容忍Mster污点**
+**8. 修改Role角色，容忍Master污点**
 ``` bash
 [root@k8smaster ~]# kubectl label node k8snode node-role.kubernetes.io/worker=worker
 [root@k8smaster ~]# kubectl taint node k8smaster node-role.kubernetes.io/master-
